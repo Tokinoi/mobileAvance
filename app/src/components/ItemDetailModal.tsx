@@ -11,6 +11,7 @@ interface Props {
   groupColor: string;
   groupIcon: string;
   onClose: () => void;
+  onEdit: () => void;
 }
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
@@ -60,7 +61,7 @@ function renderValue(field: TemplateField, val: any) {
   }
 }
 
-export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, onClose }: Props) {
+export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, onClose, onEdit }: Props) {
   if (!item) return null;
 
   const allFields = fields ?? [];
@@ -74,6 +75,9 @@ export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, 
             <Ionicons name="close" size={20} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+          <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
+            <Ionicons name="pencil-outline" size={18} color="#4F46E5" />
+          </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -115,6 +119,7 @@ const styles = StyleSheet.create({
   },
   closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
+  editBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   hero: { alignItems: 'center', gap: 12, paddingVertical: 24 },
   heroIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

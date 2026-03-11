@@ -11,6 +11,7 @@ interface GroupsContextValue {
   deleteGroup: (id: string) => Promise<string | null>;
   saveTemplate: (id: string, fields: TemplateField[]) => Promise<string | null>;
   addItem: (groupId: string, name: string, values: Record<string, any>) => Promise<string | null>;
+  updateItem: (itemId: string, name: string, values: Record<string, any>) => Promise<string | null>;
   getGroupItems: (groupId: string) => Item[];
   refresh: () => Promise<void>;
   getSubGroups: (parentId: string) => Group[];
@@ -115,6 +116,11 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
       data: values,
     });
     if (error) return error.message;
+    await refreshItems();
+    return null;
+  };
+
+  const refreshItems = async () => {
     const { data: updated } = await supabase.from('items').select('*').order('created_at', { ascending: false });
     if (updated) {
       setItems(updated.map((i) => ({
@@ -125,6 +131,12 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
         createdAt: i.created_at,
       })));
     }
+  };
+
+  const updateItem = async (itemId: string, name: string, values: Record<string, any>): Promise<string | null> => {
+    const { error } = await supabase.from('items').update({ name, data: values }).eq('id', itemId);
+    if (error) return error.message;
+    await refreshItems();
     return null;
   };
 
@@ -137,7 +149,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <GroupsContext.Provider value={{ groups, items, loading, addGroup, updateGroup, deleteGroup, saveTemplate, addItem, getGroupItems, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
+    <GroupsContext.Provider value={{ groups, items, loading, addGroup, updateGroup, deleteGroup, saveTemplate, addItem, updateItem, getGroupItems, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
       {children}
     </GroupsContext.Provider>
   );

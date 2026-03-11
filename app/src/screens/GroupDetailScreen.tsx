@@ -18,12 +18,13 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups, getSubGroups, saveTemplate, resolveTemplate, addItem, getGroupItems } = useGroups();
+  const { groups, getSubGroups, saveTemplate, resolveTemplate, addItem, updateItem, getGroupItems } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [addItemVisible, setAddItemVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [editingItem, setEditingItem] = useState<Item | null>(null);
   const group = groups.find((g) => g.id === groupId);
   const subGroups = getSubGroups(groupId);
   const groupItems = getGroupItems(groupId);
@@ -209,6 +210,17 @@ export function GroupDetailScreen() {
         groupColor={group.color}
         groupIcon={group.icon}
         onClose={() => setSelectedItem(null)}
+        onEdit={() => { setEditingItem(selectedItem); setSelectedItem(null); }}
+      />
+
+      <AddItemModal
+        visible={!!editingItem}
+        groupId={groupId}
+        fields={resolveTemplate(groupId)}
+        editMode
+        initialValues={editingItem ? { ...editingItem.data, name: editingItem.name } : {}}
+        onClose={() => setEditingItem(null)}
+        onSave={(name, values) => updateItem(editingItem!.id, name, values)}
       />
     </SafeAreaView>
   );

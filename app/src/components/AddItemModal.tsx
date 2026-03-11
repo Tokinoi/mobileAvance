@@ -13,6 +13,8 @@ interface Props {
   fields: TemplateField[] | null;
   onClose: () => void;
   onSave: (name: string, values: Record<string, any>) => Promise<string | null>;
+  initialValues?: Record<string, any>;
+  editMode?: boolean;
 }
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
@@ -167,14 +169,14 @@ const locStyles = StyleSheet.create({
   permCancel: { fontSize: 14, color: '#9CA3AF', paddingVertical: 4 },
 });
 
-export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Props) {
+export function AddItemModal({ visible, groupId, fields, onClose, onSave, initialValues, editMode }: Props) {
   const [values, setValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
-      setValues({});
+      setValues(initialValues ?? {});
       setError(null);
     }
   }, [visible]);
@@ -284,7 +286,7 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Prop
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
             <Ionicons name="close" size={20} color="#374151" />
           </TouchableOpacity>
-          <Text style={styles.title}>Add Item</Text>
+          <Text style={styles.title}>{editMode ? 'Edit Item' : 'Add Item'}</Text>
           <TouchableOpacity
             style={[styles.saveBtn, saving && { opacity: 0.7 }]}
             onPress={handleSave}
