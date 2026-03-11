@@ -1,13 +1,45 @@
-import { useRef, useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ActivityIndicator, Text, Modal } from 'react-native';
-import MapView from 'react-native-maps';
+import { useRef, useState, useMemo } from 'react';
+import { StyleSheet, View, TouchableOpacity, Text, Modal } from 'react-native';
+import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
+import { useGroups } from '../context/GroupsContext';
+
+interface PinnedItem {
+  id: string;
+  name: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  groupColor: string;
+}
 
 export function MapScreen() {
+  const { items, groups } = useGroups();
   const mapRef = useRef<MapView>(null);
   const [permissionStatus, setPermissionStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [showPopup, setShowPopup] = useState(true);
+
+  const pinnedItems = useMemo<PinnedItem[]>(() => {
+    const result: PinnedItem[] = [];
+    for (const item of items) {
+      const group = groups.find((g) => g.id === item.groupId);
+      for (const val of Object.values(item.data)) {
+        if (val && typeof val === 'object' && typeof val.latitude === 'number' && typeof val.longitude === 'number') {
+          result.push({
+            id: item.id,
+            name: item.name,
+            label: val.label ?? `${val.latitude.toFixed(4)}, ${val.longitude.toFixed(4)}`,
+            latitude: val.latitude,
+            longitude: val.longitude,
+            groupColor: group?.color ?? '#4F46E5',
+          });
+          break; // one pin per item (first location field)
+        }
+      }
+    }
+    return result;
+  }, [items, groups]);
 
   const requestPermission = async () => {
     setShowPopup(false);
@@ -43,7 +75,22 @@ export function MapScreen() {
           latitudeDelta: 10,
           longitudeDelta: 10,
         }}
-      />
+      >
+        {pinnedItems.map((pin) => (
+          <Marker
+            key={pin.id}
+            coordinate={{ latitude: pin.latitude, longitude: pin.longitude }}
+            pinColor={pin.groupColor}
+          >
+            <Callout tooltip>
+              <View style={styles.callout}>
+                <Text style={styles.calloutName}>{pin.name}</Text>
+                <Text style={styles.calloutLabel}>{pin.label}</Text>
+              </View>
+            </Callout>
+          </Marker>
+        ))}
+      </MapView>
 
       {permissionStatus === 'granted' && (
         <TouchableOpacity style={styles.locBtn} onPress={goToLocation}>
@@ -153,4 +200,18 @@ const styles = StyleSheet.create({
   allowBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   denyBtn: { paddingVertical: 10 },
   denyBtnText: { color: '#6B7280', fontSize: 14 },
+  callout: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    minWidth: 140,
+    maxWidth: 220,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  calloutName: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 2 },
+  calloutLabel: { fontSize: 12, color: '#6B7280', lineHeight: 16 },
 });
