@@ -16,13 +16,14 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups, getSubGroups, saveTemplate, resolveTemplate, addItem } = useGroups();
+  const { groups, getSubGroups, saveTemplate, resolveTemplate, addItem, getGroupItems } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [addItemVisible, setAddItemVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const group = groups.find((g) => g.id === groupId);
   const subGroups = getSubGroups(groupId);
+  const groupItems = getGroupItems(groupId);
   const hasTemplate = (group?.template?.length ?? 0) > 0;
 
   if (!group) {
@@ -77,25 +78,46 @@ export function GroupDetailScreen() {
       </View>
 
       <FlatList
-        data={subGroups}
-        keyExtractor={(item) => item.id}
+        data={[
+          ...subGroups.map((s) => ({ kind: 'subgroup' as const, id: s.id, item: s as any })),
+          ...(groupItems.length > 0 ? [{ kind: 'header' as const, id: '__items_header__', item: null as any }] : []),
+          ...groupItems.map((i) => ({ kind: 'item' as const, id: i.id, item: i as any })),
+        ]}
+        keyExtractor={(entry) => entry.id}
         contentContainerStyle={styles.listContent}
-        ListHeaderComponent={subGroups.length > 0 ? (
-          <Text style={styles.sectionTitle}>Subgroups</Text>
-        ) : null}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.subGroupCard}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
-          >
-            <View style={[styles.subGroupIcon, { backgroundColor: item.color + '20' }]}>
-              <Ionicons name={item.icon as any} size={20} color={item.color} />
+        ListHeaderComponent={
+          subGroups.length > 0 ? <Text style={styles.sectionTitle}>Subgroups</Text> : null
+        }
+        renderItem={({ item: entry }) => {
+          if (entry.kind === 'header') {
+            return <Text style={[styles.sectionTitle, { marginTop: subGroups.length > 0 ? 8 : 0 }]}>Items</Text>;
+          }
+          if (entry.kind === 'subgroup') {
+            const s = entry.item as typeof subGroups[0];
+            return (
+              <TouchableOpacity
+                style={styles.subGroupCard}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate('GroupDetail', { groupId: s.id })}
+              >
+                <View style={[styles.subGroupIcon, { backgroundColor: s.color + '20' }]}>
+                  <Ionicons name={s.icon as any} size={20} color={s.color} />
+                </View>
+                <Text style={styles.subGroupName}>{s.name}</Text>
+                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+              </TouchableOpacity>
+            );
+          }
+          const i = entry.item as typeof groupItems[0];
+          return (
+            <View style={styles.itemCard}>
+              <View style={[styles.itemIcon, { backgroundColor: group.color + '20' }]}>
+                <Ionicons name={group.icon as any} size={18} color={group.color} />
+              </View>
+              <Text style={styles.itemName}>{i.name}</Text>
             </View>
-            <Text style={styles.subGroupName}>{item.name}</Text>
-            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-          </TouchableOpacity>
-        )}
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: group.color + '15' }]}>
@@ -229,6 +251,22 @@ const styles = StyleSheet.create({
   },
   subGroupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   subGroupName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
+  itemCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  itemName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#374151' },

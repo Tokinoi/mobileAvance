@@ -8,6 +8,14 @@ export interface TemplateField {
   options?: string[];
 }
 
+export interface Item {
+  id: string;
+  groupId: string;
+  name: string;
+  data: Record<string, any>;
+  createdAt: string;
+}
+
 export interface Group {
   id: string;
   name: string;

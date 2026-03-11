@@ -1,15 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Group, TemplateField } from '../types';
+import { Group, Item, TemplateField } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface GroupsContextValue {
   groups: Group[];
+  items: Item[];
   loading: boolean;
   addGroup: (group: Omit<Group, 'id' | 'itemCount'>) => Promise<string | null>;
   updateGroup: (id: string, data: Partial<Omit<Group, 'id' | 'itemCount'>>) => Promise<string | null>;
   deleteGroup: (id: string) => Promise<string | null>;
   saveTemplate: (id: string, fields: TemplateField[]) => Promise<string | null>;
   addItem: (groupId: string, name: string, values: Record<string, any>) => Promise<string | null>;
+  getGroupItems: (groupId: string) => Item[];
   refresh: () => Promise<void>;
   getSubGroups: (parentId: string) => Group[];
   resolveTemplate: (groupId: string) => TemplateField[] | null;
@@ -19,17 +21,18 @@ const GroupsContext = createContext<GroupsContextValue | null>(null);
 
 export function GroupsProvider({ children }: { children: ReactNode }) {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchGroups = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('groups')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const [groupsRes, itemsRes] = await Promise.all([
+      supabase.from('groups').select('*').order('created_at', { ascending: false }),
+      supabase.from('items').select('*').order('created_at', { ascending: false }),
+    ]);
 
-    if (!error && data) {
-      setGroups(data.map((g) => ({
+    if (!groupsRes.error && groupsRes.data) {
+      setGroups(groupsRes.data.map((g) => ({
         id: g.id,
         name: g.name,
         description: g.description,
@@ -40,6 +43,17 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
         template: g.template ?? undefined,
       })));
     }
+
+    if (!itemsRes.error && itemsRes.data) {
+      setItems(itemsRes.data.map((i) => ({
+        id: i.id,
+        groupId: i.group_id,
+        name: i.name,
+        data: i.data ?? {},
+        createdAt: i.created_at,
+      })));
+    }
+
     setLoading(false);
   };
 
@@ -89,6 +103,8 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
 
   const getSubGroups = (parentId: string) => groups.filter((g) => g.parentId === parentId);
 
+  const getGroupItems = (groupId: string) => items.filter((i) => i.groupId === groupId);
+
   const addItem = async (groupId: string, name: string, values: Record<string, any>): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 'Not authenticated';
@@ -99,7 +115,16 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
       data: values,
     });
     if (error) return error.message;
-    await fetchGroups();
+    const { data: updated } = await supabase.from('items').select('*').order('created_at', { ascending: false });
+    if (updated) {
+      setItems(updated.map((i) => ({
+        id: i.id,
+        groupId: i.group_id,
+        name: i.name,
+        data: i.data ?? {},
+        createdAt: i.created_at,
+      })));
+    }
     return null;
   };
 
@@ -112,7 +137,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, saveTemplate, addItem, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
+    <GroupsContext.Provider value={{ groups, items, loading, addGroup, updateGroup, deleteGroup, saveTemplate, addItem, getGroupItems, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
       {children}
     </GroupsContext.Provider>
   );
