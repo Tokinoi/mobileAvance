@@ -1,4 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, FlatList } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,25 +30,26 @@ export function GroupDetailScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <Ionicons name="arrow-back" size={20} color="#374151" />
         </TouchableOpacity>
-        <View style={styles.headerSpacer} />
-        <TouchableOpacity style={styles.backBtn}>
-          <Ionicons name="settings-outline" size={20} color="#374151" />
-        </TouchableOpacity>
-      </View>
 
-      {/* Group info */}
-      <View style={styles.groupInfo}>
         <View style={[styles.groupIcon, { backgroundColor: group.color + '20' }]}>
-          <Ionicons name={group.icon as any} size={32} color={group.color} />
+          <Ionicons name={group.icon as any} size={24} color={group.color} />
         </View>
+
         <View style={styles.groupMeta}>
           <Text style={styles.groupName}>{group.name}</Text>
-          {!!group.description && <Text style={styles.groupDesc}>{group.description}</Text>}
-          <Text style={styles.groupCount}>{group.itemCount} items</Text>
+          {!!group.description && <Text style={styles.groupDesc} numberOfLines={1}>{group.description}</Text>}
         </View>
+
+        <TouchableOpacity style={styles.templateBtn}>
+          <Ionicons name="list-outline" size={16} color="#4F46E5" />
+          <Text style={styles.templateBtnText}>Template</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]}>
+          <Ionicons name="settings-outline" size={20} color="#374151" />
+        </TouchableOpacity>
       </View>
 
       {/* Empty state */}
@@ -76,19 +78,20 @@ export function GroupDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB', paddingTop: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFound: { color: '#6B7280', fontSize: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 10,
     backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  backBtn: {
+  iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -96,6 +99,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  templateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 36,
+  },
+  templateBtnText: { color: '#4F46E5', fontSize: 13, fontWeight: '600' },
   headerSpacer: { flex: 1 },
   groupInfo: {
     flexDirection: 'row',
@@ -107,10 +120,10 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  groupIcon: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  groupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   groupMeta: { flex: 1 },
-  groupName: { fontSize: 22, fontWeight: '700', color: '#111827' },
-  groupDesc: { fontSize: 14, color: '#6B7280', marginTop: 2 },
+  groupName: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  groupDesc: { fontSize: 12, color: '#6B7280' },
   groupCount: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
   listContent: { flexGrow: 1, padding: 16 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },

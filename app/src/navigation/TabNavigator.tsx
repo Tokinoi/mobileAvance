@@ -29,7 +29,7 @@ export function TabNavigator() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <PagerView
         ref={pagerRef}
         style={styles.pager}
