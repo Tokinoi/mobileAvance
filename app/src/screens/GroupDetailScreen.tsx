@@ -109,12 +109,30 @@ export function GroupDetailScreen() {
             );
           }
           const i = entry.item as typeof groupItems[0];
+          const template = resolveTemplate(groupId);
+          const visibleFields = (template ?? []).filter((f) => f.visible !== false && f.id !== 'name');
           return (
             <View style={styles.itemCard}>
               <View style={[styles.itemIcon, { backgroundColor: group.color + '20' }]}>
                 <Ionicons name={group.icon as any} size={18} color={group.color} />
               </View>
-              <Text style={styles.itemName}>{i.name}</Text>
+              <View style={styles.itemBody}>
+                <Text style={styles.itemName}>{i.name}</Text>
+                {visibleFields.length > 0 && (
+                  <View style={styles.itemFields}>
+                    {visibleFields.map((f) => {
+                      const val = i.data[f.id];
+                      if (val === undefined || val === null || val === '') return null;
+                      return (
+                        <View key={f.id} style={styles.itemField}>
+                          <Text style={styles.itemFieldLabel}>{f.name}:</Text>
+                          <Text style={styles.itemFieldValue}>{String(val)}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
             </View>
           );
         }}
@@ -265,8 +283,13 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  itemName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
+  itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  itemBody: { flex: 1, gap: 4 },
+  itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  itemFields: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  itemField: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  itemFieldLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
+  itemFieldValue: { fontSize: 12, color: '#6B7280' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#374151' },
