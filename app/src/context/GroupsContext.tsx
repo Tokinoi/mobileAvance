@@ -9,9 +9,10 @@ interface GroupsContextValue {
   updateGroup: (id: string, data: Partial<Omit<Group, 'id' | 'itemCount'>>) => Promise<string | null>;
   deleteGroup: (id: string) => Promise<string | null>;
   saveTemplate: (id: string, fields: TemplateField[]) => Promise<string | null>;
+  addItem: (groupId: string, name: string, values: Record<string, any>) => Promise<string | null>;
   refresh: () => Promise<void>;
   getSubGroups: (parentId: string) => Group[];
-  resolveTemplate: (group: Group) => { fields: TemplateField[]; inherited: boolean } | null;
+  resolveTemplate: (groupId: string) => TemplateField[] | null;
 }
 
 const GroupsContext = createContext<GroupsContextValue | null>(null);
@@ -88,17 +89,30 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
 
   const getSubGroups = (parentId: string) => groups.filter((g) => g.parentId === parentId);
 
-  const resolveTemplate = (group: Group): { fields: TemplateField[]; inherited: boolean } | null => {
-    if (group.template && group.template.length > 0) return { fields: group.template, inherited: false };
-    if (group.parentId) {
-      const parent = groups.find((g) => g.id === group.parentId);
-      if (parent?.template && parent.template.length > 0) return { fields: parent.template, inherited: true };
-    }
+  const addItem = async (groupId: string, name: string, values: Record<string, any>): Promise<string | null> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 'Not authenticated';
+    const { error } = await supabase.from('items').insert({
+      user_id: user.id,
+      group_id: groupId,
+      name,
+      data: values,
+    });
+    if (error) return error.message;
+    await fetchGroups();
+    return null;
+  };
+
+  const resolveTemplate = (groupId: string): TemplateField[] | null => {
+    const g = groups.find((x) => x.id === groupId);
+    if (!g) return null;
+    if (g.template && g.template.length > 0) return g.template;
+    if (g.parentId) return resolveTemplate(g.parentId);
     return null;
   };
 
   return (
-    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, saveTemplate, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
+    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, saveTemplate, addItem, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
       {children}
     </GroupsContext.Provider>
   );

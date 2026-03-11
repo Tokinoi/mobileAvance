@@ -8,6 +8,7 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useGroups } from '../context/GroupsContext';
 import { TemplateModal } from '../components/TemplateModal';
 import { GroupSettingsModal } from '../components/GroupSettingsModal';
+import { AddItemModal } from '../components/AddItemModal';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 
@@ -15,9 +16,10 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups, getSubGroups, saveTemplate } = useGroups();
+  const { groups, getSubGroups, saveTemplate, resolveTemplate, addItem } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [addItemVisible, setAddItemVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const group = groups.find((g) => g.id === groupId);
   const subGroups = getSubGroups(groupId);
@@ -117,7 +119,7 @@ export function GroupDetailScreen() {
               <Text style={styles.fabMenuText}>SubGroup</Text>
             </TouchableOpacity>
             <View style={styles.fabMenuDivider} />
-            <TouchableOpacity style={styles.fabMenuItem} onPress={() => setFabOpen(false)}>
+            <TouchableOpacity style={styles.fabMenuItem} onPress={() => { setFabOpen(false); setAddItemVisible(true); }}>
               <View style={styles.fabMenuIcon}>
                 <Ionicons name="document-outline" size={18} color="#4F46E5" />
               </View>
@@ -144,6 +146,14 @@ export function GroupDetailScreen() {
         group={group}
         onClose={() => setSettingsVisible(false)}
         onDeleted={() => navigation.goBack()}
+      />
+
+      <AddItemModal
+        visible={addItemVisible}
+        groupId={groupId}
+        fields={resolveTemplate(groupId)}
+        onClose={() => setAddItemVisible(false)}
+        onSave={(name, values) => addItem(groupId, name, values)}
       />
     </SafeAreaView>
   );
