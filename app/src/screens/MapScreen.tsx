@@ -1,14 +1,23 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import MapView from 'react-native-maps';
 
 export function MapScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Map</Text>
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 48.8566,
+          longitude: 2.3522,
+          latitudeDelta: 10,
+          longitudeDelta: 10,
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
-  text: { fontSize: 20, fontWeight: '600', color: '#111827' },
+  container: { flex: 1 },
+  map: { flex: 1 },
 });
