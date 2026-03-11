@@ -1,5 +1,5 @@
 import { useRef, useState, useMemo } from 'react';
-import { StyleSheet, View, TouchableOpacity, Text, Modal } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Text, Modal, ScrollView } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,14 +15,36 @@ interface PinnedItem {
 }
 
 export function MapScreen() {
-  const { items, groups } = useGroups();
+  const { items, groups, resolveTemplate } = useGroups();
   const mapRef = useRef<MapView>(null);
   const [permissionStatus, setPermissionStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [showPopup, setShowPopup] = useState(true);
+  const [showFilter, setShowFilter] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<Set<string> | null>(null); // null = all
+
+  // Groups that have at least one location field in their resolved template
+  const groupsWithLocation = useMemo(() => {
+    return groups.filter((g) => {
+      const template = resolveTemplate(g.id);
+      return template?.some((f) => f.type === 'location');
+    });
+  }, [groups, resolveTemplate]);
+
+  const toggleGroup = (id: string) => {
+    setSelectedGroups((prev) => {
+      const all = new Set(groupsWithLocation.map((g) => g.id));
+      const current = prev ?? all;
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const pinnedItems = useMemo<PinnedItem[]>(() => {
+    const activeGroups = selectedGroups ?? new Set(groupsWithLocation.map((g) => g.id));
     const result: PinnedItem[] = [];
     for (const item of items) {
+      if (!activeGroups.has(item.groupId)) continue;
       const group = groups.find((g) => g.id === item.groupId);
       for (const val of Object.values(item.data)) {
         if (val && typeof val === 'object' && typeof val.latitude === 'number' && typeof val.longitude === 'number') {
@@ -34,12 +56,12 @@ export function MapScreen() {
             longitude: val.longitude,
             groupColor: group?.color ?? '#4F46E5',
           });
-          break; // one pin per item (first location field)
+          break;
         }
       }
     }
     return result;
-  }, [items, groups]);
+  }, [items, groups, selectedGroups, groupsWithLocation]);
 
   const requestPermission = async () => {
     setShowPopup(false);
@@ -97,6 +119,47 @@ export function MapScreen() {
           <Ionicons name="locate" size={22} color="#4F46E5" />
         </TouchableOpacity>
       )}
+
+      {/* Filter button */}
+      {groupsWithLocation.length > 0 && (
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilter(true)}>
+          <Ionicons name="filter" size={18} color="#4F46E5" />
+          {selectedGroups !== null && selectedGroups.size < groupsWithLocation.length && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{selectedGroups.size}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* Filter panel */}
+      <Modal visible={showFilter} transparent animationType="slide">
+        <TouchableOpacity style={styles.filterOverlay} activeOpacity={1} onPress={() => setShowFilter(false)} />
+        <View style={styles.filterPanel}>
+          <View style={styles.filterHeader}>
+            <Text style={styles.filterTitle}>Filter by group</Text>
+            <TouchableOpacity onPress={() => { setSelectedGroups(null); setShowFilter(false); }}>
+              <Text style={styles.filterReset}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView bounces={false}>
+            {groupsWithLocation.map((g) => {
+              const active = selectedGroups === null || selectedGroups.has(g.id);
+              return (
+                <TouchableOpacity key={g.id} style={styles.filterRow} onPress={() => toggleGroup(g.id)}>
+                  <View style={[styles.filterIcon, { backgroundColor: g.color + '20' }]}>
+                    <Ionicons name={g.icon as any} size={18} color={g.color} />
+                  </View>
+                  <Text style={styles.filterGroupName}>{g.name}</Text>
+                  <View style={[styles.filterCheck, active && { backgroundColor: '#4F46E5', borderColor: '#4F46E5' }]}>
+                    {active && <Ionicons name="checkmark" size={12} color="#fff" />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
 
       {permissionStatus === 'denied' && (
         <View style={styles.banner}>
@@ -200,6 +263,78 @@ const styles = StyleSheet.create({
   allowBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   denyBtn: { paddingVertical: 10 },
   denyBtnText: { color: '#6B7280', fontSize: 14 },
+  filterBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
+  filterOverlay: { flex: 1 },
+  filterPanel: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 32,
+    maxHeight: '60%',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 12,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  filterTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
+  filterReset: { fontSize: 14, color: '#4F46E5', fontWeight: '600' },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F9FAFB',
+  },
+  filterIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  filterGroupName: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
+  filterCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   callout: {
     backgroundColor: '#fff',
     borderRadius: 10,
