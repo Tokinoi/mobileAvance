@@ -8,15 +8,34 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
+import { SignupScreen } from './SignupScreen';
 
 export function LoginScreen() {
   const { login } = useAuth();
+  const [showSignup, setShowSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (showSignup) return <SignupScreen onBack={() => setShowSignup(false)} />;
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError('Please fill in all fields.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    const err = await login(email.trim(), password);
+    setLoading(false);
+    if (err) setError(err);
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -35,6 +54,12 @@ export function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -44,6 +69,7 @@ export function LoginScreen() {
             placeholderTextColor="#9CA3AF"
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!loading}
           />
 
           <Text style={[styles.label, { marginTop: 16 }]}>Password</Text>
@@ -55,6 +81,7 @@ export function LoginScreen() {
               placeholder="••••••••"
               placeholderTextColor="#9CA3AF"
               secureTextEntry={!showPassword}
+              editable={!loading}
             />
             <TouchableOpacity
               style={styles.eyeBtn}
@@ -72,15 +99,22 @@ export function LoginScreen() {
             <Text style={styles.forgotText}>Forgot password?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.loginBtn} onPress={login}>
-            <Text style={styles.loginBtnText}>Sign In</Text>
+          <TouchableOpacity
+            style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.loginBtnText}>Sign In</Text>
+            }
           </TouchableOpacity>
         </View>
 
         {/* Sign up */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setShowSignup(true)}>
             <Text style={styles.footerLink}>Create account</Text>
           </TouchableOpacity>
         </View>
@@ -119,6 +153,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
+  errorBox: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: { color: '#DC2626', fontSize: 13 },
   label: { fontSize: 13, fontWeight: '500', color: '#374151', marginBottom: 8 },
   input: {
     backgroundColor: '#F9FAFB',
@@ -152,6 +195,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
+  loginBtnDisabled: { opacity: 0.7 },
   loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
   footerText: { fontSize: 14, color: '#6B7280' },
