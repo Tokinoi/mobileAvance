@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Group } from '../types';
+import { Group, TemplateField } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface GroupsContextValue {
@@ -8,8 +8,10 @@ interface GroupsContextValue {
   addGroup: (group: Omit<Group, 'id' | 'itemCount'>) => Promise<string | null>;
   updateGroup: (id: string, data: Partial<Omit<Group, 'id' | 'itemCount'>>) => Promise<string | null>;
   deleteGroup: (id: string) => Promise<string | null>;
+  saveTemplate: (id: string, fields: TemplateField[]) => Promise<string | null>;
   refresh: () => Promise<void>;
   getSubGroups: (parentId: string) => Group[];
+  resolveTemplate: (group: Group) => { fields: TemplateField[]; inherited: boolean } | null;
 }
 
 const GroupsContext = createContext<GroupsContextValue | null>(null);
@@ -34,6 +36,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
         color: g.color,
         itemCount: g.item_count,
         parentId: g.parent_id ?? undefined,
+        template: g.template ?? undefined,
       })));
     }
     setLoading(false);
@@ -76,10 +79,26 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
+  const saveTemplate = async (id: string, fields: TemplateField[]): Promise<string | null> => {
+    const { error } = await supabase.from('groups').update({ template: fields }).eq('id', id);
+    if (error) return error.message;
+    await fetchGroups();
+    return null;
+  };
+
   const getSubGroups = (parentId: string) => groups.filter((g) => g.parentId === parentId);
 
+  const resolveTemplate = (group: Group): { fields: TemplateField[]; inherited: boolean } | null => {
+    if (group.template && group.template.length > 0) return { fields: group.template, inherited: false };
+    if (group.parentId) {
+      const parent = groups.find((g) => g.id === group.parentId);
+      if (parent?.template && parent.template.length > 0) return { fields: parent.template, inherited: true };
+    }
+    return null;
+  };
+
   return (
-    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, refresh: fetchGroups, getSubGroups }}>
+    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, saveTemplate, refresh: fetchGroups, getSubGroups, resolveTemplate }}>
       {children}
     </GroupsContext.Provider>
   );

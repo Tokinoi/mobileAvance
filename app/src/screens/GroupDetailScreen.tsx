@@ -15,11 +15,12 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups, getSubGroups } = useGroups();
+  const { groups, getSubGroups, resolveTemplate, saveTemplate } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const subGroups = getSubGroups(groupId);
+  const resolvedTemplate = group ? resolveTemplate(group) : null;
 
   const group = groups.find((g) => g.id === groupId);
 
@@ -56,9 +57,18 @@ export function GroupDetailScreen() {
           {!!group.description && <Text style={styles.groupDesc} numberOfLines={1}>{group.description}</Text>}
         </View>
 
-        <TouchableOpacity style={styles.templateBtn} onPress={() => setTemplateVisible(true)}>
-          <Ionicons name="list-outline" size={16} color="#4F46E5" />
-          <Text style={styles.templateBtnText}>Template</Text>
+        <TouchableOpacity
+          style={[styles.templateBtn, !resolvedTemplate && styles.templateBtnNone, resolvedTemplate?.inherited && styles.templateBtnInherited]}
+          onPress={() => setTemplateVisible(true)}
+        >
+          <Ionicons
+            name={resolvedTemplate ? 'list-outline' : 'add-outline'}
+            size={16}
+            color={resolvedTemplate?.inherited ? '#7C3AED' : resolvedTemplate ? '#4F46E5' : '#9CA3AF'}
+          />
+          <Text style={[styles.templateBtnText, !resolvedTemplate && styles.templateBtnTextNone, resolvedTemplate?.inherited && styles.templateBtnTextInherited]}>
+            {resolvedTemplate?.inherited ? 'Inherited' : resolvedTemplate ? 'Template' : 'No Template'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={() => setSettingsVisible(true)}>
           <Ionicons name="settings-outline" size={20} color="#374151" />
@@ -126,7 +136,8 @@ export function GroupDetailScreen() {
       <TemplateModal
         visible={templateVisible}
         onClose={() => setTemplateVisible(false)}
-        onSave={(fields) => console.log('Template saved:', fields)}
+        initialFields={resolvedTemplate?.fields}
+        onSave={(fields) => saveTemplate(groupId, fields)}
       />
 
       <GroupSettingsModal
@@ -171,6 +182,10 @@ const styles = StyleSheet.create({
     height: 36,
   },
   templateBtnText: { color: '#4F46E5', fontSize: 13, fontWeight: '600' },
+  templateBtnNone: { backgroundColor: '#F3F4F6' },
+  templateBtnInherited: { backgroundColor: '#F5F3FF' },
+  templateBtnTextNone: { color: '#9CA3AF' },
+  templateBtnTextInherited: { color: '#7C3AED' },
   headerSpacer: { flex: 1 },
   groupInfo: {
     flexDirection: 'row',

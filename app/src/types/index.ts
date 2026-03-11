@@ -1,9 +1,20 @@
+export type FieldType = 'text' | 'number' | 'date' | 'rating' | 'dropdown' | 'toggle' | 'image';
+
+export interface TemplateField {
+  id: string;
+  name: string;
+  type: FieldType;
+  required: boolean;
+  options?: string[];
+}
+
 export interface Group {
   id: string;
   name: string;
   description: string;
-  icon: string; // Ionicons key
+  icon: string;
   color: string;
   itemCount: number;
   parentId?: string;
+  template?: TemplateField[];
 }

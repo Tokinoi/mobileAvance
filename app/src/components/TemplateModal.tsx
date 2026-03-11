@@ -11,16 +11,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-type FieldType = 'text' | 'number' | 'date' | 'rating' | 'dropdown' | 'toggle' | 'image';
-
-interface TemplateField {
-  id: string;
-  name: string;
-  type: FieldType;
-  required: boolean;
-  options?: string[];
-}
+import { TemplateField, FieldType } from '../types';
 
 interface Props {
   visible: boolean;
