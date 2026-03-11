@@ -6,6 +6,8 @@ interface GroupsContextValue {
   groups: Group[];
   loading: boolean;
   addGroup: (group: Omit<Group, 'id' | 'itemCount'>) => Promise<string | null>;
+  updateGroup: (id: string, data: Partial<Omit<Group, 'id' | 'itemCount'>>) => Promise<string | null>;
+  deleteGroup: (id: string) => Promise<string | null>;
   refresh: () => Promise<void>;
   getSubGroups: (parentId: string) => Group[];
 }
@@ -37,14 +39,11 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
+  useEffect(() => { fetchGroups(); }, []);
 
   const addGroup = async (data: Omit<Group, 'id' | 'itemCount'>): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 'Not authenticated';
-
     const { error } = await supabase.from('groups').insert({
       user_id: user.id,
       name: data.name,
@@ -53,7 +52,25 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
       color: data.color,
       parent_id: data.parentId ?? null,
     });
+    if (error) return error.message;
+    await fetchGroups();
+    return null;
+  };
 
+  const updateGroup = async (id: string, data: Partial<Omit<Group, 'id' | 'itemCount'>>): Promise<string | null> => {
+    const { error } = await supabase.from('groups').update({
+      name: data.name,
+      description: data.description,
+      icon: data.icon,
+      color: data.color,
+    }).eq('id', id);
+    if (error) return error.message;
+    await fetchGroups();
+    return null;
+  };
+
+  const deleteGroup = async (id: string): Promise<string | null> => {
+    const { error } = await supabase.from('groups').delete().eq('id', id);
     if (error) return error.message;
     await fetchGroups();
     return null;
@@ -62,7 +79,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
   const getSubGroups = (parentId: string) => groups.filter((g) => g.parentId === parentId);
 
   return (
-    <GroupsContext.Provider value={{ groups, loading, addGroup, refresh: fetchGroups, getSubGroups }}>
+    <GroupsContext.Provider value={{ groups, loading, addGroup, updateGroup, deleteGroup, refresh: fetchGroups, getSubGroups }}>
       {children}
     </GroupsContext.Provider>
   );

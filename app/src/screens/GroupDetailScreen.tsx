@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useGroups } from '../context/GroupsContext';
 import { TemplateModal } from '../components/TemplateModal';
+import { GroupSettingsModal } from '../components/GroupSettingsModal';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 
@@ -16,6 +17,7 @@ export function GroupDetailScreen() {
   const { groupId } = route.params;
   const { groups, getSubGroups } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const subGroups = getSubGroups(groupId);
 
@@ -52,7 +54,7 @@ export function GroupDetailScreen() {
           <Ionicons name="list-outline" size={16} color="#4F46E5" />
           <Text style={styles.templateBtnText}>Template</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]}>
+        <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={() => setSettingsVisible(true)}>
           <Ionicons name="settings-outline" size={20} color="#374151" />
         </TouchableOpacity>
       </View>
@@ -119,6 +121,13 @@ export function GroupDetailScreen() {
         visible={templateVisible}
         onClose={() => setTemplateVisible(false)}
         onSave={(fields) => console.log('Template saved:', fields)}
+      />
+
+      <GroupSettingsModal
+        visible={settingsVisible}
+        group={group}
+        onClose={() => setSettingsVisible(false)}
+        onDeleted={() => navigation.goBack()}
       />
     </SafeAreaView>
   );
