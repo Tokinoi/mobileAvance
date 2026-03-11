@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
   ScrollView, StyleSheet, SafeAreaView, Switch, ActivityIndicator,
@@ -18,72 +18,153 @@ interface Props {
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
 
 interface LocationValue {
-  latitude: number;
-  longitude: number;
-  label?: string;
+  label: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 function LocationField({ value, onChange }: { value: LocationValue | undefined; onChange: (v: LocationValue) => void }) {
+  const [query, setQuery] = useState(value?.label ?? '');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [locError, setLocError] = useState<string | null>(null);
+  const [permModal, setPermModal] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleLocate = async () => {
+  const search = (text: string) => {
+    setQuery(text);
+    onChange({ label: text });
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!text || text.length < 3) { setSuggestions([]); return; }
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&addressdetails=1`,
+          { headers: { 'User-Agent': 'CollectionManagerApp/1.0' } }
+        );
+        setSuggestions(await res.json());
+      } catch {}
+      setSearching(false);
+    }, 600);
+  };
+
+  const selectSuggestion = (item: any) => {
+    const label = item.display_name;
+    setQuery(label);
+    setSuggestions([]);
+    onChange({ label, latitude: parseFloat(item.lat), longitude: parseFloat(item.lon) });
+  };
+
+  const locate = async () => {
     setLocating(true);
-    setLocError(null);
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setLocError('Location permission denied');
-      setLocating(false);
-      return;
-    }
-    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const [geo] = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-    const label = geo
-      ? [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', ')
-      : `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-    onChange({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, label });
+    try {
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const [geo] = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+      const label = geo
+        ? [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', ')
+        : `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+      setQuery(label);
+      setSuggestions([]);
+      onChange({ label, latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    } catch {}
     setLocating(false);
+  };
+
+  const handlePin = async () => {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') { setPermModal(true); return; }
+    await locate();
+  };
+
+  const requestAndLocate = async () => {
+    setPermModal(false);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === 'granted') await locate();
   };
 
   return (
     <View style={locStyles.container}>
-      {value ? (
-        <View style={locStyles.result}>
-          <Ionicons name="location" size={16} color="#4F46E5" />
-          <Text style={locStyles.label} numberOfLines={2}>{value.label ?? `${value.latitude.toFixed(5)}, ${value.longitude.toFixed(5)}`}</Text>
-          <TouchableOpacity onPress={handleLocate} style={locStyles.refreshBtn}>
-            <Ionicons name="refresh-outline" size={16} color="#6B7280" />
-          </TouchableOpacity>
+      <View style={locStyles.inputRow}>
+        <TextInput
+          style={locStyles.input}
+          value={query}
+          onChangeText={search}
+          placeholder="Search address…"
+          placeholderTextColor="#9CA3AF"
+        />
+        {searching
+          ? <ActivityIndicator size="small" color="#4F46E5" style={locStyles.pin} />
+          : (
+            <TouchableOpacity style={locStyles.pin} onPress={handlePin} disabled={locating}>
+              {locating
+                ? <ActivityIndicator size="small" color="#4F46E5" />
+                : <Ionicons name="location" size={20} color="#4F46E5" />}
+            </TouchableOpacity>
+          )}
+      </View>
+
+      {suggestions.length > 0 && (
+        <View style={locStyles.suggestions}>
+          {suggestions.map((item) => (
+            <TouchableOpacity key={item.place_id} style={locStyles.suggestion} onPress={() => selectSuggestion(item)}>
+              <Ionicons name="location-outline" size={14} color="#6B7280" />
+              <Text style={locStyles.suggestionText} numberOfLines={2}>{item.display_name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      ) : (
-        <TouchableOpacity style={locStyles.btn} onPress={handleLocate} disabled={locating}>
-          {locating
-            ? <ActivityIndicator size="small" color="#4F46E5" />
-            : <Ionicons name="location-outline" size={18} color="#4F46E5" />}
-          <Text style={locStyles.btnText}>{locating ? 'Getting location…' : 'Use current location'}</Text>
-        </TouchableOpacity>
       )}
-      {locError && <Text style={locStyles.error}>{locError}</Text>}
+
+      <Modal visible={permModal} transparent animationType="fade">
+        <View style={locStyles.permOverlay}>
+          <View style={locStyles.permCard}>
+            <View style={locStyles.permIcon}>
+              <Ionicons name="location-outline" size={28} color="#4F46E5" />
+            </View>
+            <Text style={locStyles.permTitle}>Location Access</Text>
+            <Text style={locStyles.permDesc}>
+              We need your location to auto-fill this field with your current position.
+            </Text>
+            <TouchableOpacity style={locStyles.permBtn} onPress={requestAndLocate}>
+              <Text style={locStyles.permBtnText}>Allow Location</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setPermModal(false)}>
+              <Text style={locStyles.permCancel}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const locStyles = StyleSheet.create({
   container: { gap: 6 },
-  btn: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#EEF2FF', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 12,
+  inputRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#E5E7EB',
+    borderRadius: 10, paddingLeft: 12, overflow: 'hidden',
   },
-  btnText: { fontSize: 14, color: '#4F46E5', fontWeight: '500' },
-  result: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#F0FDF4', borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0',
+  input: { flex: 1, fontSize: 15, color: '#111827', paddingVertical: 10 },
+  pin: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  suggestions: {
+    backgroundColor: '#fff', borderRadius: 10, borderWidth: 1, borderColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  suggestion: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10,
+    borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
-  label: { flex: 1, fontSize: 13, color: '#166534' },
-  refreshBtn: { padding: 4 },
-  error: { fontSize: 12, color: '#DC2626' },
+  suggestionText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 18 },
+  permOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 32 },
+  permCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', gap: 12, width: '100%' },
+  permIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center' },
+  permTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  permDesc: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
+  permBtn: { backgroundColor: '#4F46E5', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, width: '100%', alignItems: 'center' },
+  permBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  permCancel: { fontSize: 14, color: '#9CA3AF', paddingVertical: 4 },
 });
 
 export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Props) {
