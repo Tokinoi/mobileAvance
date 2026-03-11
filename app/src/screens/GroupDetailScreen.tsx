@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -5,6 +6,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useGroups } from '../context/GroupsContext';
+import { TemplateModal } from '../components/TemplateModal';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 
@@ -13,6 +15,7 @@ export function GroupDetailScreen() {
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
   const { groups } = useGroups();
+  const [templateVisible, setTemplateVisible] = useState(false);
 
   const group = groups.find((g) => g.id === groupId);
 
@@ -43,7 +46,7 @@ export function GroupDetailScreen() {
           {!!group.description && <Text style={styles.groupDesc} numberOfLines={1}>{group.description}</Text>}
         </View>
 
-        <TouchableOpacity style={styles.templateBtn}>
+        <TouchableOpacity style={styles.templateBtn} onPress={() => setTemplateVisible(true)}>
           <Ionicons name="list-outline" size={16} color="#4F46E5" />
           <Text style={styles.templateBtnText}>Template</Text>
         </TouchableOpacity>
@@ -73,6 +76,12 @@ export function GroupDetailScreen() {
       <TouchableOpacity style={styles.fab}>
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
+
+      <TemplateModal
+        visible={templateVisible}
+        onClose={() => setTemplateVisible(false)}
+        onSave={(fields) => console.log('Template saved:', fields)}
+      />
     </SafeAreaView>
   );
 }
