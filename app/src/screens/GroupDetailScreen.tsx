@@ -37,7 +37,13 @@ export function GroupDetailScreen() {
     <SafeAreaView style={styles.safe}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+        <TouchableOpacity
+          onPress={() => group.parentId
+            ? navigation.navigate('GroupDetail', { groupId: group.parentId })
+            : navigation.goBack()
+          }
+          style={styles.iconBtn}
+        >
           <Ionicons name="arrow-back" size={20} color="#374151" />
         </TouchableOpacity>
 
