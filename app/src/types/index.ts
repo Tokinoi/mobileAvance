@@ -5,6 +5,7 @@ export interface TemplateField {
   name: string;
   type: FieldType;
   required: boolean;
+  visible: boolean;
   options?: string[];
 }
 

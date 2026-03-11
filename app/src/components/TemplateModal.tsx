@@ -32,7 +32,7 @@ const FIELD_TYPES: { value: FieldType; label: string; icon: string }[] = [
 ];
 
 const DEFAULT_FIELDS: TemplateField[] = [
-  { id: 'name', name: 'Name', type: 'text', required: true },
+  { id: 'name', name: 'Name', type: 'text', required: true, visible: true },
 ];
 
 export function TemplateModal({ visible, onClose, onSave, initialFields }: Props) {
@@ -50,7 +50,7 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
   const addField = () => {
     setFields((prev) => [
       ...prev,
-      { id: `field_${Date.now()}`, name: '', type: 'text', required: false },
+      { id: `field_${Date.now()}`, name: '', type: 'text', required: false, visible: true },
     ]);
   };
 
@@ -105,17 +105,24 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
           {/* Fields */}
           {fields.map((field, index) => (
             <View key={field.id} style={styles.fieldCard}>
-              {/* Field name + delete */}
+              {/* Field name + actions */}
               <View style={styles.fieldRow}>
                 <Ionicons name="reorder-two-outline" size={20} color="#D1D5DB" style={{ marginRight: 4 }} />
                 <TextInput
-                  style={styles.fieldNameInput}
+                  style={[styles.fieldNameInput, !field.visible && styles.fieldNameInputHidden]}
                   value={field.name}
                   onChangeText={(v) => updateField(index, { name: v })}
                   placeholder="Field name"
                   placeholderTextColor="#9CA3AF"
                 />
-                <TouchableOpacity onPress={() => removeField(index)} style={styles.deleteBtn}>
+                <TouchableOpacity onPress={() => updateField(index, { visible: !field.visible })} style={styles.actionBtn}>
+                  <Ionicons
+                    name={field.visible ? 'eye-outline' : 'eye-off-outline'}
+                    size={18}
+                    color={field.visible ? '#6B7280' : '#D1D5DB'}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => removeField(index)} style={styles.actionBtn}>
                   <Ionicons name="trash-outline" size={18} color="#EF4444" />
                 </TouchableOpacity>
               </View>
@@ -245,7 +252,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
-  deleteBtn: { padding: 6 },
+  actionBtn: { padding: 6 },
+  fieldNameInputHidden: { opacity: 0.4 },
   typeScroll: { marginHorizontal: -2 },
   typeChip: {
     flexDirection: 'row',
