@@ -154,7 +154,7 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Prop
               </Text>
             </View>
           ) : (
-            fields!.filter((f) => f.visible !== false).map((field) => (
+            fields!.map((field) => (
               <View key={field.id} style={styles.fieldCard}>
                 <View style={styles.fieldLabelRow}>
                   <Text style={styles.fieldLabel}>{field.name}</Text>
