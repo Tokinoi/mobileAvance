@@ -4,6 +4,7 @@ import {
   ScrollView, StyleSheet, SafeAreaView, Switch, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 import { TemplateField } from '../types';
 
 interface Props {
@@ -15,6 +16,75 @@ interface Props {
 }
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
+
+interface LocationValue {
+  latitude: number;
+  longitude: number;
+  label?: string;
+}
+
+function LocationField({ value, onChange }: { value: LocationValue | undefined; onChange: (v: LocationValue) => void }) {
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+
+  const handleLocate = async () => {
+    setLocating(true);
+    setLocError(null);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setLocError('Location permission denied');
+      setLocating(false);
+      return;
+    }
+    const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const [geo] = await Location.reverseGeocodeAsync({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+    const label = geo
+      ? [geo.name, geo.street, geo.city, geo.country].filter(Boolean).join(', ')
+      : `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
+    onChange({ latitude: pos.coords.latitude, longitude: pos.coords.longitude, label });
+    setLocating(false);
+  };
+
+  return (
+    <View style={locStyles.container}>
+      {value ? (
+        <View style={locStyles.result}>
+          <Ionicons name="location" size={16} color="#4F46E5" />
+          <Text style={locStyles.label} numberOfLines={2}>{value.label ?? `${value.latitude.toFixed(5)}, ${value.longitude.toFixed(5)}`}</Text>
+          <TouchableOpacity onPress={handleLocate} style={locStyles.refreshBtn}>
+            <Ionicons name="refresh-outline" size={16} color="#6B7280" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity style={locStyles.btn} onPress={handleLocate} disabled={locating}>
+          {locating
+            ? <ActivityIndicator size="small" color="#4F46E5" />
+            : <Ionicons name="location-outline" size={18} color="#4F46E5" />}
+          <Text style={locStyles.btnText}>{locating ? 'Getting location…' : 'Use current location'}</Text>
+        </TouchableOpacity>
+      )}
+      {locError && <Text style={locStyles.error}>{locError}</Text>}
+    </View>
+  );
+}
+
+const locStyles = StyleSheet.create({
+  container: { gap: 6 },
+  btn: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#EEF2FF', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+  },
+  btnText: { fontSize: 14, color: '#4F46E5', fontWeight: '500' },
+  result: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F0FDF4', borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0',
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  label: { flex: 1, fontSize: 13, color: '#166534' },
+  refreshBtn: { padding: 4 },
+  error: { fontSize: 12, color: '#DC2626' },
+});
 
 export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Props) {
   const [values, setValues] = useState<Record<string, any>>({});
@@ -108,6 +178,14 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave }: Prop
               </TouchableOpacity>
             ))}
           </View>
+        );
+
+      case 'location':
+        return (
+          <LocationField
+            value={val}
+            onChange={(v) => setValue(field.id, v)}
+          />
         );
 
       default:

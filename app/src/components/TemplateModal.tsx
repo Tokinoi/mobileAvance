@@ -29,6 +29,7 @@ const FIELD_TYPES: { value: FieldType; label: string; icon: string }[] = [
   { value: 'dropdown', label: 'Dropdown', icon: 'chevron-down-outline' },
   { value: 'toggle', label: 'Toggle', icon: 'toggle-outline' },
   { value: 'image', label: 'Image', icon: 'image-outline' },
+  { value: 'location', label: 'Location', icon: 'location-outline' },
 ];
 
 const DEFAULT_FIELDS: TemplateField[] = [

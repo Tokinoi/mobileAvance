@@ -123,10 +123,13 @@ export function GroupDetailScreen() {
                     {visibleFields.map((f) => {
                       const val = i.data[f.id];
                       if (val === undefined || val === null || val === '') return null;
+                      const display = f.type === 'location' && typeof val === 'object'
+                        ? (val.label ?? `${val.latitude?.toFixed(4)}, ${val.longitude?.toFixed(4)}`)
+                        : String(val);
                       return (
                         <View key={f.id} style={styles.itemField}>
                           <Text style={styles.itemFieldLabel}>{f.name}:</Text>
-                          <Text style={styles.itemFieldValue}>{String(val)}</Text>
+                          <Text style={styles.itemFieldValue}>{display}</Text>
                         </View>
                       );
                     })}

@@ -1,4 +1,4 @@
-export type FieldType = 'text' | 'number' | 'date' | 'rating' | 'dropdown' | 'toggle' | 'image';
+export type FieldType = 'text' | 'number' | 'date' | 'rating' | 'dropdown' | 'toggle' | 'image' | 'location';
 
 export interface TemplateField {
   id: string;
