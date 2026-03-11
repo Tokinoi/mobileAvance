@@ -19,11 +19,13 @@ const SCREENS = [HomeScreen, GroupsScreen, MapScreen, ProfileScreen];
 
 export function TabNavigator() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [visitedTabs, setVisitedTabs] = useState<Set<number>>(new Set([0]));
   const pagerRef = useRef<PagerView>(null);
 
   const goToTab = (index: number) => {
     pagerRef.current?.setPage(index);
     setActiveIndex(index);
+    setVisitedTabs((prev) => new Set(prev).add(index));
   };
 
   return (
@@ -32,11 +34,15 @@ export function TabNavigator() {
         ref={pagerRef}
         style={styles.pager}
         initialPage={0}
-        onPageSelected={(e) => setActiveIndex(e.nativeEvent.position)}
+        onPageSelected={(e) => {
+          const index = e.nativeEvent.position;
+          setActiveIndex(index);
+          setVisitedTabs((prev) => new Set(prev).add(index));
+        }}
       >
         {SCREENS.map((Screen, i) => (
           <View key={i} style={styles.page}>
-            <Screen />
+            {visitedTabs.has(i) ? <Screen /> : null}
           </View>
         ))}
       </PagerView>

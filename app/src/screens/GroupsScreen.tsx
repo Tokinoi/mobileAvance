@@ -14,9 +14,9 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useGroups } from '../context/GroupsContext';
 import type { Group } from '../types';
 
-function GroupCard({ group }: { group: Group }) {
+function GroupCard({ group, onPress }: { group: Group; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
       <View style={[styles.iconBox, { backgroundColor: group.color + '20' }]}>
         <Ionicons name={group.icon as any} size={24} color={group.color} />
       </View>
@@ -48,7 +48,9 @@ export function GroupsScreen() {
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <GroupCard group={item} />}
+        renderItem={({ item }) => (
+          <GroupCard group={item} onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })} />
+        )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
