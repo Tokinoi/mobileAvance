@@ -121,11 +121,7 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                   placeholderTextColor="#9CA3AF"
                   editable={!isName}
                 />
-                {isName ? (
-                  <View style={[styles.actionBtn, { opacity: 0.3 }]}>
-                    <Ionicons name="eye-outline" size={18} color="#6B7280" />
-                  </View>
-                ) : (
+                {!isName && (
                   <TouchableOpacity onPress={() => updateField(index, { visible: !field.visible })} style={styles.actionBtn}>
                     <Ionicons
                       name={field.visible ? 'eye-outline' : 'eye-off-outline'}
