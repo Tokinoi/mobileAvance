@@ -23,7 +23,6 @@ function GroupCard({ group, onPress }: { group: Group; onPress: () => void }) {
       <View style={styles.cardBody}>
         <Text style={styles.cardName}>{group.name}</Text>
         <Text style={styles.cardDesc} numberOfLines={1}>{group.description}</Text>
-        <Text style={styles.cardCount}>{group.itemCount} items</Text>
       </View>
       <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
     </TouchableOpacity>
