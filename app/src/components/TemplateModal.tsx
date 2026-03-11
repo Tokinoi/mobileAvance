@@ -117,10 +117,9 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                 <TextInput
                   style={[styles.fieldNameInput, !isName && !field.visible && styles.fieldNameInputHidden]}
                   value={field.name}
-                  onChangeText={(v) => !isName && updateField(index, { name: v })}
+                  onChangeText={(v) => updateField(index, { name: v })}
                   placeholder="Field name"
                   placeholderTextColor="#9CA3AF"
-                  editable={!isName}
                 />
                 {!isName && (
                   <TouchableOpacity onPress={() => updateField(index, { visible: !field.visible })} style={styles.actionBtn}>
@@ -138,27 +137,29 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                 )}
               </View>
 
-              {/* Type picker */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
-                {FIELD_TYPES.map((t) => {
-                  const selected = field.type === t.value;
-                  return (
-                    <TouchableOpacity
-                      key={t.value}
-                      style={[styles.typeChip, selected && styles.typeChipSelected]}
-                      onPress={() => updateField(index, { type: t.value })}
-                    >
-                      <Ionicons name={t.icon as any} size={14} color={selected ? '#4F46E5' : '#6B7280'} />
-                      <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
-                        {t.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+              {/* Type picker — hidden for Name field */}
+              {!isName && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.typeScroll}>
+                  {FIELD_TYPES.map((t) => {
+                    const selected = field.type === t.value;
+                    return (
+                      <TouchableOpacity
+                        key={t.value}
+                        style={[styles.typeChip, selected && styles.typeChipSelected]}
+                        onPress={() => updateField(index, { type: t.value })}
+                      >
+                        <Ionicons name={t.icon as any} size={14} color={selected ? '#4F46E5' : '#6B7280'} />
+                        <Text style={[styles.typeChipText, selected && styles.typeChipTextSelected]}>
+                          {t.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
 
-              {/* Dropdown options */}
-              {field.type === 'dropdown' && (
+              {/* Dropdown options — hidden for Name field */}
+              {!isName && field.type === 'dropdown' && (
                 <View style={styles.optionsRow}>
                   <Text style={styles.optionsLabel}>Options (comma separated)</Text>
                   <TextInput
@@ -175,8 +176,8 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                 </View>
               )}
 
-              {/* Required toggle */}
-              <View style={styles.requiredRow}>
+              {/* Required toggle — hidden for Name field */}
+              {!isName && <View style={styles.requiredRow}>
                 <Text style={styles.requiredLabel}>Required</Text>
                 <Switch
                   value={field.required}
@@ -184,7 +185,7 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                   trackColor={{ false: '#E5E7EB', true: '#A5B4FC' }}
                   thumbColor={field.required ? '#4F46E5' : '#fff'}
                 />
-              </View>
+              </View>}
             </View>
             );
           })}
