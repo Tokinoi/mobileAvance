@@ -42,7 +42,8 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
 
   useEffect(() => {
     if (visible) {
-      setFields(initialFields && initialFields.length > 0 ? initialFields : DEFAULT_FIELDS);
+      const base = initialFields && initialFields.length > 0 ? initialFields : DEFAULT_FIELDS;
+      setFields(base.map((f) => ({ ...f, visible: f.visible ?? true })));
       setError(null);
     }
   }, [visible, initialFields]);
