@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -31,7 +32,7 @@ function GroupCard({ group }: { group: Group }) {
 
 export function GroupsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { groups } = useGroups();
+  const { groups, loading } = useGroups();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -39,6 +40,11 @@ export function GroupsScreen() {
         <Text style={styles.headerTitle}>Groups</Text>
       </View>
 
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4F46E5" />
+        </View>
+      )}
       <FlatList
         data={groups}
         keyExtractor={(item) => item.id}
@@ -100,6 +106,7 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 15, fontWeight: '600', color: '#111827' },
   cardDesc: { fontSize: 13, color: '#6B7280', marginTop: 2 },
   cardCount: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
+  loadingContainer: { position: 'absolute', top: 100, left: 0, right: 0, alignItems: 'center', zIndex: 1 },
   empty: { alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
   emptyText: { fontSize: 15, color: '#9CA3AF' },
   fab: {

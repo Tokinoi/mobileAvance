@@ -8,6 +8,7 @@ import {
   StyleSheet,
   SafeAreaView,
   useWindowDimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -49,10 +50,16 @@ export function CreateGroupScreen() {
   const [description, setDescription] = useState('');
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name.trim()) return;
-    addGroup({ name: name.trim(), description: description.trim(), icon: selectedIcon.icon, color: selectedColor });
+    setSaving(true);
+    setError(null);
+    const err = await addGroup({ name: name.trim(), description: description.trim(), icon: selectedIcon.icon, color: selectedColor });
+    setSaving(false);
+    if (err) { setError(err); return; }
     navigation.goBack();
   };
 
@@ -149,13 +156,22 @@ export function CreateGroupScreen() {
           </View>
         </View>
 
+        {error && (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
         {/* Save */}
         <TouchableOpacity
-          style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}
+          style={[styles.saveBtn, (!name.trim() || saving) && styles.saveBtnDisabled]}
           onPress={handleSave}
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
         >
-          <Text style={styles.saveBtnText}>Create Group</Text>
+          {saving
+            ? <ActivityIndicator color="#fff" />
+            : <Text style={styles.saveBtnText}>Create Group</Text>
+          }
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -237,4 +253,12 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  errorBox: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  errorText: { color: '#DC2626', fontSize: 13 },
 });
