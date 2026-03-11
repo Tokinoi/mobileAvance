@@ -7,6 +7,7 @@ interface GroupsContextValue {
   loading: boolean;
   addGroup: (group: Omit<Group, 'id' | 'itemCount'>) => Promise<string | null>;
   refresh: () => Promise<void>;
+  getSubGroups: (parentId: string) => Group[];
 }
 
 const GroupsContext = createContext<GroupsContextValue | null>(null);
@@ -30,6 +31,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
         icon: g.icon,
         color: g.color,
         itemCount: g.item_count,
+        parentId: g.parent_id ?? undefined,
       })));
     }
     setLoading(false);
@@ -49,6 +51,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
       description: data.description,
       icon: data.icon,
       color: data.color,
+      parent_id: data.parentId ?? null,
     });
 
     if (error) return error.message;
@@ -56,8 +59,10 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
     return null;
   };
 
+  const getSubGroups = (parentId: string) => groups.filter((g) => g.parentId === parentId);
+
   return (
-    <GroupsContext.Provider value={{ groups, loading, addGroup, refresh: fetchGroups }}>
+    <GroupsContext.Provider value={{ groups, loading, addGroup, refresh: fetchGroups, getSubGroups }}>
       {children}
     </GroupsContext.Provider>
   );

@@ -33,6 +33,7 @@ function GroupCard({ group, onPress }: { group: Group; onPress: () => void }) {
 export function GroupsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { groups, loading } = useGroups();
+  const rootGroups = groups.filter((g) => !g.parentId);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -46,7 +47,7 @@ export function GroupsScreen() {
         </View>
       )}
       <FlatList
-        data={groups}
+        data={rootGroups}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <GroupCard group={item} onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })} />

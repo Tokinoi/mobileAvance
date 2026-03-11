@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 
 export type RootStackParamList = {
   Tabs: undefined;
-  CreateGroup: undefined;
+  CreateGroup: { parentId?: string } | undefined;
   GroupDetail: { groupId: string };
 };
 

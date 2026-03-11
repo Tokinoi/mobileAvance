@@ -14,9 +14,10 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups } = useGroups();
+  const { groups, getSubGroups } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const subGroups = getSubGroups(groupId);
 
   const group = groups.find((g) => g.id === groupId);
 
@@ -56,12 +57,26 @@ export function GroupDetailScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Empty state */}
       <FlatList
-        data={[]}
-        keyExtractor={(item) => item}
-        renderItem={() => null}
+        data={subGroups}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={subGroups.length > 0 ? (
+          <Text style={styles.sectionTitle}>Subgroups</Text>
+        ) : null}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.subGroupCard}
+            activeOpacity={0.8}
+            onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}
+          >
+            <View style={[styles.subGroupIcon, { backgroundColor: item.color + '20' }]}>
+              <Ionicons name={item.icon as any} size={20} color={item.color} />
+            </View>
+            <Text style={styles.subGroupName}>{item.name}</Text>
+            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
+          </TouchableOpacity>
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={[styles.emptyIcon, { backgroundColor: group.color + '15' }]}>
@@ -78,7 +93,7 @@ export function GroupDetailScreen() {
         <>
           <TouchableOpacity style={styles.fabBackdrop} onPress={() => setFabOpen(false)} />
           <View style={styles.fabMenu}>
-            <TouchableOpacity style={styles.fabMenuItem} onPress={() => setFabOpen(false)}>
+            <TouchableOpacity style={styles.fabMenuItem} onPress={() => { setFabOpen(false); navigation.navigate('CreateGroup', { parentId: groupId }); }}>
               <View style={styles.fabMenuIcon}>
                 <Ionicons name="folder-outline" size={18} color="#4F46E5" />
               </View>
@@ -157,7 +172,24 @@ const styles = StyleSheet.create({
   groupName: { fontSize: 16, fontWeight: '700', color: '#111827' },
   groupDesc: { fontSize: 12, color: '#6B7280' },
   groupCount: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
-  listContent: { flexGrow: 1, padding: 16 },
+  listContent: { flexGrow: 1, padding: 16, gap: 10 },
+  sectionTitle: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  subGroupCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  subGroupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  subGroupName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 16, fontWeight: '600', color: '#374151' },

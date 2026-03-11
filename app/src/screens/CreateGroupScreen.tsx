@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useGroups } from '../context/GroupsContext';
 
 const ICON_OPTIONS: { name: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -43,7 +43,9 @@ const COLOR_OPTIONS = [
 
 export function CreateGroupScreen() {
   const navigation = useNavigation();
+  const route = useRoute();
   const { addGroup } = useGroups();
+  const parentId = (route.params as any)?.parentId as string | undefined;
   const { width } = useWindowDimensions();
   const cellSize = (width - 32 - 32 - 8 * 5) / 6; // padding 16*2, card padding 16*2, 5 gaps
   const [name, setName] = useState('');
@@ -57,7 +59,7 @@ export function CreateGroupScreen() {
     if (!name.trim()) return;
     setSaving(true);
     setError(null);
-    const err = await addGroup({ name: name.trim(), description: description.trim(), icon: selectedIcon.icon, color: selectedColor });
+    const err = await addGroup({ name: name.trim(), description: description.trim(), icon: selectedIcon.icon, color: selectedColor, parentId });
     setSaving(false);
     if (err) { setError(err); return; }
     navigation.goBack();

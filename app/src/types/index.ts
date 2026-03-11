@@ -5,4 +5,5 @@ export interface Group {
   icon: string; // Ionicons key
   color: string;
   itemCount: number;
+  parentId?: string;
 }
