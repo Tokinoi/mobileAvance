@@ -64,9 +64,11 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
   };
 
   const handleSave = async () => {
+    const hasName = fields.some((f) => f.id === 'name');
+    const toSave = hasName ? fields : [{ id: 'name', name: 'Name', type: 'text' as const, required: true, visible: true }, ...fields];
     setSaving(true);
     setError(null);
-    const err = await onSave(fields);
+    const err = await onSave(toSave);
     setSaving(false);
     if (err) { setError(err); return; }
     onClose();
@@ -104,28 +106,39 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
           </View>
 
           {/* Fields */}
-          {fields.map((field, index) => (
+          {fields.map((field, index) => {
+            const isName = field.id === 'name';
+            return (
             <View key={field.id} style={styles.fieldCard}>
               {/* Field name + actions */}
               <View style={styles.fieldRow}>
-                <Ionicons name="reorder-two-outline" size={20} color="#D1D5DB" style={{ marginRight: 4 }} />
+                <Ionicons name="reorder-two-outline" size={20} color={isName ? '#E5E7EB' : '#D1D5DB'} style={{ marginRight: 4 }} />
                 <TextInput
-                  style={[styles.fieldNameInput, !field.visible && styles.fieldNameInputHidden]}
+                  style={[styles.fieldNameInput, !isName && !field.visible && styles.fieldNameInputHidden]}
                   value={field.name}
-                  onChangeText={(v) => updateField(index, { name: v })}
+                  onChangeText={(v) => !isName && updateField(index, { name: v })}
                   placeholder="Field name"
                   placeholderTextColor="#9CA3AF"
+                  editable={!isName}
                 />
-                <TouchableOpacity onPress={() => updateField(index, { visible: !field.visible })} style={styles.actionBtn}>
-                  <Ionicons
-                    name={field.visible ? 'eye-outline' : 'eye-off-outline'}
-                    size={18}
-                    color={field.visible ? '#6B7280' : '#D1D5DB'}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => removeField(index)} style={styles.actionBtn}>
-                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                </TouchableOpacity>
+                {isName ? (
+                  <View style={[styles.actionBtn, { opacity: 0.3 }]}>
+                    <Ionicons name="eye-outline" size={18} color="#6B7280" />
+                  </View>
+                ) : (
+                  <TouchableOpacity onPress={() => updateField(index, { visible: !field.visible })} style={styles.actionBtn}>
+                    <Ionicons
+                      name={field.visible ? 'eye-outline' : 'eye-off-outline'}
+                      size={18}
+                      color={field.visible ? '#6B7280' : '#D1D5DB'}
+                    />
+                  </TouchableOpacity>
+                )}
+                {!isName && (
+                  <TouchableOpacity onPress={() => removeField(index)} style={styles.actionBtn}>
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* Type picker */}
@@ -176,7 +189,8 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
                 />
               </View>
             </View>
-          ))}
+            );
+          })}
 
           {/* Add field */}
           <TouchableOpacity style={styles.addFieldBtn} onPress={addField}>
