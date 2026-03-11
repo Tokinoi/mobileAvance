@@ -15,14 +15,13 @@ export function GroupDetailScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const route = useRoute<GroupDetailRouteProp>();
   const { groupId } = route.params;
-  const { groups, getSubGroups, resolveTemplate, saveTemplate } = useGroups();
+  const { groups, getSubGroups, saveTemplate } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
-  const subGroups = getSubGroups(groupId);
-  const resolvedTemplate = group ? resolveTemplate(group) : null;
-
   const group = groups.find((g) => g.id === groupId);
+  const subGroups = getSubGroups(groupId);
+  const hasTemplate = (group?.template?.length ?? 0) > 0;
 
   if (!group) {
     return (
@@ -58,16 +57,16 @@ export function GroupDetailScreen() {
         </View>
 
         <TouchableOpacity
-          style={[styles.templateBtn, !resolvedTemplate && styles.templateBtnNone, resolvedTemplate?.inherited && styles.templateBtnInherited]}
+          style={[styles.templateBtn, hasTemplate ? styles.templateBtnHas : styles.templateBtnNone]}
           onPress={() => setTemplateVisible(true)}
         >
           <Ionicons
-            name={resolvedTemplate ? 'list-outline' : 'add-outline'}
+            name={hasTemplate ? 'list-outline' : 'add-outline'}
             size={16}
-            color={resolvedTemplate?.inherited ? '#7C3AED' : resolvedTemplate ? '#4F46E5' : '#9CA3AF'}
+            color={hasTemplate ? '#16A34A' : '#9CA3AF'}
           />
-          <Text style={[styles.templateBtnText, !resolvedTemplate && styles.templateBtnTextNone, resolvedTemplate?.inherited && styles.templateBtnTextInherited]}>
-            {resolvedTemplate?.inherited ? 'Inherited' : resolvedTemplate ? 'Template' : 'No Template'}
+          <Text style={[styles.templateBtnText, hasTemplate ? styles.templateBtnTextHas : styles.templateBtnTextNone]}>
+            {hasTemplate ? 'Template' : 'No Template'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={() => setSettingsVisible(true)}>
@@ -136,7 +135,7 @@ export function GroupDetailScreen() {
       <TemplateModal
         visible={templateVisible}
         onClose={() => setTemplateVisible(false)}
-        initialFields={resolvedTemplate?.fields}
+        initialFields={group?.template}
         onSave={(fields) => saveTemplate(groupId, fields)}
       />
 
@@ -181,11 +180,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     height: 36,
   },
-  templateBtnText: { color: '#4F46E5', fontSize: 13, fontWeight: '600' },
+  templateBtnText: { fontSize: 13, fontWeight: '600' },
+  templateBtnHas: { backgroundColor: '#F0FDF4' },
   templateBtnNone: { backgroundColor: '#F3F4F6' },
-  templateBtnInherited: { backgroundColor: '#F5F3FF' },
+  templateBtnTextHas: { color: '#16A34A' },
   templateBtnTextNone: { color: '#9CA3AF' },
-  templateBtnTextInherited: { color: '#7C3AED' },
   headerSpacer: { flex: 1 },
   groupInfo: {
     flexDirection: 'row',

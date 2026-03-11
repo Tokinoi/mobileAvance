@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Switch,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { TemplateField, FieldType } from '../types';
@@ -16,7 +17,7 @@ import { TemplateField, FieldType } from '../types';
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onSave: (fields: TemplateField[]) => void;
+  onSave: (fields: TemplateField[]) => Promise<string | null>;
   initialFields?: TemplateField[];
 }
 
@@ -36,6 +37,15 @@ const DEFAULT_FIELDS: TemplateField[] = [
 
 export function TemplateModal({ visible, onClose, onSave, initialFields }: Props) {
   const [fields, setFields] = useState<TemplateField[]>(initialFields ?? DEFAULT_FIELDS);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setFields(initialFields && initialFields.length > 0 ? initialFields : DEFAULT_FIELDS);
+      setError(null);
+    }
+  }, [visible, initialFields]);
 
   const addField = () => {
     setFields((prev) => [
@@ -52,8 +62,12 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
     setFields((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
-    onSave(fields);
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    const err = await onSave(fields);
+    setSaving(false);
+    if (err) { setError(err); return; }
     onClose();
   };
 
@@ -69,12 +83,17 @@ export function TemplateModal({ visible, onClose, onSave, initialFields }: Props
             <Text style={styles.title}>Template Editor</Text>
             <Text style={styles.subtitle}>Define fields for items</Text>
           </View>
-          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-            <Text style={styles.saveBtnText}>Save</Text>
+          <TouchableOpacity style={[styles.saveBtn, saving && { opacity: 0.7 }]} onPress={handleSave} disabled={saving}>
+            {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={styles.saveBtnText}>Save</Text>}
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {error && (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
           {/* Info */}
           <View style={styles.infoBox}>
             <Ionicons name="information-circle-outline" size={16} color="#1D4ED8" />
@@ -189,6 +208,8 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
+  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#FECACA' },
+  errorText: { color: '#DC2626', fontSize: 13 },
   infoBox: {
     flexDirection: 'row',
     gap: 8,
