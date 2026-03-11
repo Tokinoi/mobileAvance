@@ -16,6 +16,7 @@ export function GroupDetailScreen() {
   const { groupId } = route.params;
   const { groups } = useGroups();
   const [templateVisible, setTemplateVisible] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const group = groups.find((g) => g.id === groupId);
 
@@ -72,9 +73,31 @@ export function GroupDetailScreen() {
         }
       />
 
+      {/* FAB popup */}
+      {fabOpen && (
+        <>
+          <TouchableOpacity style={styles.fabBackdrop} onPress={() => setFabOpen(false)} />
+          <View style={styles.fabMenu}>
+            <TouchableOpacity style={styles.fabMenuItem} onPress={() => setFabOpen(false)}>
+              <View style={styles.fabMenuIcon}>
+                <Ionicons name="folder-outline" size={18} color="#4F46E5" />
+              </View>
+              <Text style={styles.fabMenuText}>SubGroup</Text>
+            </TouchableOpacity>
+            <View style={styles.fabMenuDivider} />
+            <TouchableOpacity style={styles.fabMenuItem} onPress={() => setFabOpen(false)}>
+              <View style={styles.fabMenuIcon}>
+                <Ionicons name="document-outline" size={18} color="#4F46E5" />
+              </View>
+              <Text style={styles.fabMenuText}>Item</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+
       {/* FAB */}
-      <TouchableOpacity style={styles.fab}>
-        <Ionicons name="add" size={28} color="#fff" />
+      <TouchableOpacity style={styles.fab} onPress={() => setFabOpen((v) => !v)}>
+        <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="#fff" />
       </TouchableOpacity>
 
       <TemplateModal
@@ -155,4 +178,39 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
+  fabBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 10,
+  },
+  fabMenu: {
+    position: 'absolute',
+    bottom: 92,
+    right: 24,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    zIndex: 11,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  fabMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  fabMenuIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fabMenuText: { fontSize: 15, fontWeight: '500', color: '#111827' },
+  fabMenuDivider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
 });
