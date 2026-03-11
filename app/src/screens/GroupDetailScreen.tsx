@@ -9,6 +9,8 @@ import { useGroups } from '../context/GroupsContext';
 import { TemplateModal } from '../components/TemplateModal';
 import { GroupSettingsModal } from '../components/GroupSettingsModal';
 import { AddItemModal } from '../components/AddItemModal';
+import { ItemDetailModal } from '../components/ItemDetailModal';
+import { Item } from '../types';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 
@@ -21,6 +23,7 @@ export function GroupDetailScreen() {
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [addItemVisible, setAddItemVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const group = groups.find((g) => g.id === groupId);
   const subGroups = getSubGroups(groupId);
   const groupItems = getGroupItems(groupId);
@@ -112,7 +115,7 @@ export function GroupDetailScreen() {
           const template = resolveTemplate(groupId);
           const visibleFields = (template ?? []).filter((f) => f.visible !== false && f.id !== 'name');
           return (
-            <View style={styles.itemCard}>
+            <TouchableOpacity style={styles.itemCard} activeOpacity={0.8} onPress={() => setSelectedItem(i)}>
               <View style={[styles.itemIcon, { backgroundColor: group.color + '20' }]}>
                 <Ionicons name={group.icon as any} size={18} color={group.color} />
               </View>
@@ -136,7 +139,7 @@ export function GroupDetailScreen() {
                   </View>
                 )}
               </View>
-            </View>
+            </TouchableOpacity>
           );
         }}
         ListEmptyComponent={
@@ -197,6 +200,15 @@ export function GroupDetailScreen() {
         fields={resolveTemplate(groupId)}
         onClose={() => setAddItemVisible(false)}
         onSave={(name, values) => addItem(groupId, name, values)}
+      />
+
+      <ItemDetailModal
+        visible={!!selectedItem}
+        item={selectedItem}
+        fields={resolveTemplate(groupId)}
+        groupColor={group.color}
+        groupIcon={group.icon}
+        onClose={() => setSelectedItem(null)}
       />
     </SafeAreaView>
   );

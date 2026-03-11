@@ -1,0 +1,140 @@
+import {
+  Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Item, TemplateField } from '../types';
+
+interface Props {
+  visible: boolean;
+  item: Item | null;
+  fields: TemplateField[] | null;
+  groupColor: string;
+  groupIcon: string;
+  onClose: () => void;
+}
+
+const RATING_OPTIONS = [1, 2, 3, 4, 5];
+
+function renderValue(field: TemplateField, val: any) {
+  if (val === undefined || val === null || val === '') {
+    return <Text style={styles.emptyValue}>—</Text>;
+  }
+
+  switch (field.type) {
+    case 'toggle':
+      return (
+        <View style={[styles.badge, val ? styles.badgeOn : styles.badgeOff]}>
+          <Text style={[styles.badgeText, val ? styles.badgeTextOn : styles.badgeTextOff]}>
+            {val ? 'Yes' : 'No'}
+          </Text>
+        </View>
+      );
+
+    case 'rating':
+      return (
+        <View style={styles.ratingRow}>
+          {RATING_OPTIONS.map((n) => (
+            <Ionicons
+              key={n}
+              name={n <= val ? 'star' : 'star-outline'}
+              size={22}
+              color={n <= val ? '#F59E0B' : '#D1D5DB'}
+            />
+          ))}
+        </View>
+      );
+
+    case 'location':
+      if (typeof val === 'object' && val.label) {
+        return (
+          <View style={styles.locationRow}>
+            <Ionicons name="location" size={15} color="#4F46E5" />
+            <Text style={styles.locationText}>{val.label}</Text>
+          </View>
+        );
+      }
+      return <Text style={styles.value}>{String(val)}</Text>;
+
+    default:
+      return <Text style={styles.value}>{String(val)}</Text>;
+  }
+}
+
+export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, onClose }: Props) {
+  if (!item) return null;
+
+  const allFields = fields ?? [];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <SafeAreaView style={styles.safe}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <Ionicons name="close" size={20} color="#374151" />
+          </TouchableOpacity>
+          <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Hero icon */}
+          <View style={styles.hero}>
+            <View style={[styles.heroIcon, { backgroundColor: groupColor + '20' }]}>
+              <Ionicons name={groupIcon as any} size={40} color={groupColor} />
+            </View>
+            <Text style={styles.heroName}>{item.name}</Text>
+          </View>
+
+          {/* Fields */}
+          {allFields.map((field) => {
+            const val = item.data[field.id];
+            return (
+              <View key={field.id} style={styles.fieldCard}>
+                <View style={styles.fieldHeader}>
+                  <Text style={styles.fieldLabel}>{field.name}</Text>
+                  {!field.visible && (
+                    <Ionicons name="eye-off-outline" size={13} color="#D1D5DB" />
+                  )}
+                </View>
+                {renderValue(field, val)}
+              </View>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
+  },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
+  content: { padding: 16, gap: 12, paddingBottom: 40 },
+  hero: { alignItems: 'center', gap: 12, paddingVertical: 24 },
+  heroIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  heroName: { fontSize: 22, fontWeight: '700', color: '#111827', textAlign: 'center' },
+  fieldCard: {
+    backgroundColor: '#fff', borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: '#F3F4F6', gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
+  },
+  fieldHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  fieldLabel: { fontSize: 12, fontWeight: '600', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 15, color: '#111827', fontWeight: '500' },
+  emptyValue: { fontSize: 15, color: '#D1D5DB', fontStyle: 'italic' },
+  ratingRow: { flexDirection: 'row', gap: 4 },
+  badge: { alignSelf: 'flex-start', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  badgeOn: { backgroundColor: '#F0FDF4' },
+  badgeOff: { backgroundColor: '#F9FAFB' },
+  badgeText: { fontSize: 14, fontWeight: '600' },
+  badgeTextOn: { color: '#16A34A' },
+  badgeTextOff: { color: '#9CA3AF' },
+  locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  locationText: { flex: 1, fontSize: 15, color: '#111827', fontWeight: '500', lineHeight: 20 },
+});
