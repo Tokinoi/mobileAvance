@@ -1,21 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, TouchableOpacity, ActivityIndicator, Text } from 'react-native';
-import MapView, { Region } from 'react-native-maps';
+import { useRef, useState } from 'react';
+import { StyleSheet, View, TouchableOpacity, ActivityIndicator, Text, Modal } from 'react-native';
+import MapView from 'react-native-maps';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 export function MapScreen() {
   const mapRef = useRef<MapView>(null);
-  const [ready, setReady] = useState(false);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [permissionStatus, setPermissionStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
+  const [showPopup, setShowPopup] = useState(true);
 
-  useEffect(() => {
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { setPermissionDenied(true); setReady(true); return; }
-      setReady(true);
-    })();
-  }, []);
+  const requestPermission = async () => {
+    setShowPopup(false);
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    setPermissionStatus(status === 'granted' ? 'granted' : 'denied');
+  };
+
+  const declinePermission = () => {
+    setShowPopup(false);
+    setPermissionStatus('denied');
+  };
 
   const goToLocation = async () => {
     const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -32,7 +35,7 @@ export function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        showsUserLocation={!permissionDenied}
+        showsUserLocation={permissionStatus === 'granted'}
         showsMyLocationButton={false}
         initialRegion={{
           latitude: 48.8566,
@@ -42,23 +45,38 @@ export function MapScreen() {
         }}
       />
 
-      {!ready && (
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color="#4F46E5" />
-        </View>
-      )}
-
-      {permissionDenied && (
-        <View style={styles.banner}>
-          <Text style={styles.bannerText}>Location permission denied</Text>
-        </View>
-      )}
-
-      {ready && !permissionDenied && (
+      {permissionStatus === 'granted' && (
         <TouchableOpacity style={styles.locBtn} onPress={goToLocation}>
           <Ionicons name="locate" size={22} color="#4F46E5" />
         </TouchableOpacity>
       )}
+
+      {permissionStatus === 'denied' && (
+        <View style={styles.banner}>
+          <Text style={styles.bannerText}>Location access denied — your position won't be shown.</Text>
+        </View>
+      )}
+
+      {/* Pre-permission popup */}
+      <Modal visible={showPopup} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.popup}>
+            <View style={styles.popupIcon}>
+              <Ionicons name="location" size={32} color="#4F46E5" />
+            </View>
+            <Text style={styles.popupTitle}>Use your location?</Text>
+            <Text style={styles.popupBody}>
+              We use your location only to show where you are on the map. It is never stored or shared.
+            </Text>
+            <TouchableOpacity style={styles.allowBtn} onPress={requestPermission}>
+              <Text style={styles.allowBtnText}>Allow location access</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.denyBtn} onPress={declinePermission}>
+              <Text style={styles.denyBtnText}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -66,7 +84,6 @@ export function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  loading: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F9FAFB' },
   locBtn: {
     position: 'absolute',
     bottom: 24,
@@ -95,4 +112,45 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   bannerText: { color: '#DC2626', fontSize: 13, textAlign: 'center' },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  popup: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  popupIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  popupTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 10 },
+  popupBody: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  allowBtn: {
+    width: '100%',
+    backgroundColor: '#4F46E5',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  allowBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  denyBtn: { paddingVertical: 10 },
+  denyBtnText: { color: '#6B7280', fontSize: 14 },
 });
