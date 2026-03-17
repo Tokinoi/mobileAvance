@@ -1,7 +1,8 @@
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 import { useGroups } from '../context/GroupsContext';
 import { FAB } from '../components/atoms/FAB';
 import { LocationPermissionPopup } from '../components/organisms/LocationPermissionPopup';
@@ -20,7 +21,20 @@ export function MapScreen() {
   const { items, groups, resolveTemplate } = useGroups();
   const mapRef = useRef<MapView>(null);
   const [permissionStatus, setPermissionStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
-  const [showPopup, setShowPopup] = useState(true);
+  const [showPopup, setShowPopup] = useState(false);
+
+  // Re-check permission every time the screen is focused
+  useFocusEffect(useCallback(() => {
+    Location.getForegroundPermissionsAsync().then(({ status }) => {
+      if (status === 'granted') {
+        setPermissionStatus('granted');
+        setShowPopup(false);
+      } else {
+        setPermissionStatus('idle');
+        setShowPopup(true);
+      }
+    });
+  }, []));
   const [showFilter, setShowFilter] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string> | null>(null); // null = all
 
