@@ -99,6 +99,7 @@ export function HomeScreen() {
       .from('groups')
       .select('*')
       .is('parent_id', null)
+      .eq('is_public', true)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setAllGroups((data ?? []).map(mapGroup));
@@ -116,7 +117,7 @@ export function HomeScreen() {
     }
     setSearching(true);
     const [groupsRes, usersRes] = await Promise.all([
-      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
+      supabase.from('groups').select('*').eq('is_public', true).ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
       supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).limit(10),
     ]);
     setSearchGroups((groupsRes.data ?? []).map(mapGroup));
