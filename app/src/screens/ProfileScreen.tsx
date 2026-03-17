@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-
-interface FriendRequest {
-  id: string;
-  from_user_id: string;
-  pseudo: string;
-}
+import { FriendRequestsModal } from '../components/FriendRequestsModal';
 
 export function ProfileScreen() {
   const { session, logout } = useAuth();
@@ -20,47 +15,21 @@ export function ProfileScreen() {
   const initial = pseudo[0]?.toUpperCase() ?? 'U';
 
   const [friendsCount, setFriendsCount] = useState(0);
-  const [invitations, setInvitations] = useState<FriendRequest[]>([]);
-  const [loadingInvitations, setLoadingInvitations] = useState(true);
-  const [responding, setResponding] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
 
-  const fetchInvitations = async () => {
+  const fetchCounts = async () => {
     const userId = session?.user?.id;
     if (!userId) return;
-    const [invRes, friendsRes] = await Promise.all([
-      supabase
-        .from('friend_requests')
-        .select('id, from_user_id, profiles!from_user_id(pseudo)')
-        .eq('to_user_id', userId)
-        .eq('status', 'pending'),
-      supabase
-        .from('friend_requests')
-        .select('id')
-        .eq('status', 'accepted')
-        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`),
+    const [pendingRes, friendsRes] = await Promise.all([
+      supabase.from('friend_requests').select('id').eq('to_user_id', userId).eq('status', 'pending'),
+      supabase.from('friend_requests').select('id').eq('status', 'accepted').or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`),
     ]);
-    if (invRes.data) {
-      setInvitations(invRes.data.map((r: any) => ({
-        id: r.id,
-        from_user_id: r.from_user_id,
-        pseudo: r.profiles?.pseudo ?? 'Unknown',
-      })));
-    }
-    if (friendsRes.data) setFriendsCount(friendsRes.data.length);
-    setLoadingInvitations(false);
+    setPendingCount(pendingRes.data?.length ?? 0);
+    setFriendsCount(friendsRes.data?.length ?? 0);
   };
 
-  useEffect(() => { fetchInvitations(); }, [session]);
-
-  const handleRespond = async (requestId: string, accept: boolean) => {
-    setResponding(requestId);
-    await supabase
-      .from('friend_requests')
-      .update({ status: accept ? 'accepted' : 'declined' })
-      .eq('id', requestId);
-    await fetchInvitations();
-    setResponding(null);
-  };
+  useEffect(() => { fetchCounts(); }, [session]);
 
   const handleLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -100,38 +69,25 @@ export function ProfileScreen() {
         </View>
 
         {/* Invitations */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Friend requests</Text>
-          {loadingInvitations ? (
-            <ActivityIndicator color="#4F46E5" style={{ marginTop: 12 }} />
-          ) : invitations.length === 0 ? (
-            <View style={styles.emptyRow}>
-              <Ionicons name="mail-outline" size={20} color="#D1D5DB" />
-              <Text style={styles.emptyText}>No pending requests</Text>
-            </View>
-          ) : (
-            invitations.map((inv) => (
-              <View key={inv.id} style={styles.invitationRow}>
-                <View style={styles.invAvatar}>
-                  <Text style={styles.invAvatarInitial}>{inv.pseudo[0]?.toUpperCase()}</Text>
-                </View>
-                <Text style={styles.invPseudo}>{inv.pseudo}</Text>
-                {responding === inv.id ? (
-                  <ActivityIndicator size="small" color="#4F46E5" />
-                ) : (
-                  <View style={styles.invActions}>
-                    <TouchableOpacity style={styles.acceptBtn} onPress={() => handleRespond(inv.id, true)}>
-                      <Ionicons name="checkmark" size={18} color="#fff" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.declineBtn} onPress={() => handleRespond(inv.id, false)}>
-                      <Ionicons name="close" size={18} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
-                )}
+        <TouchableOpacity style={styles.section} activeOpacity={0.7} onPress={() => setModalVisible(true)}>
+          <View style={styles.sectionRow}>
+            <Ionicons name="mail-outline" size={20} color="#4F46E5" />
+            <Text style={styles.sectionTitle}>Friend requests</Text>
+            {pendingCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{pendingCount}</Text>
               </View>
-            ))
-          )}
-        </View>
+            )}
+            <Ionicons name="chevron-forward" size={16} color="#D1D5DB" style={{ marginLeft: 'auto' }} />
+          </View>
+        </TouchableOpacity>
+
+        <FriendRequestsModal
+          visible={modalVisible}
+          userId={session?.user?.id ?? ''}
+          onClose={() => setModalVisible(false)}
+          onChanged={fetchCounts}
+        />
 
         {/* Spacer for footer */}
         <View style={{ height: 100 }} />
@@ -191,31 +147,13 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#F3F4F6',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827', marginBottom: 12 },
-  emptyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-  emptyText: { fontSize: 14, color: '#9CA3AF' },
-
-  invitationRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: '#F3F4F6',
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  badge: {
+    backgroundColor: '#4F46E5', borderRadius: 10,
+    paddingHorizontal: 7, paddingVertical: 2,
   },
-  invAvatar: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
-  },
-  invAvatarInitial: { fontSize: 16, fontWeight: '700', color: '#4F46E5' },
-  invPseudo: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
-  invActions: { flexDirection: 'row', gap: 8 },
-  acceptBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#4F46E5', alignItems: 'center', justifyContent: 'center',
-  },
-  declineBtn: {
-    width: 34, height: 34, borderRadius: 17,
-    backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#FECACA',
-  },
+  badgeText: { fontSize: 12, fontWeight: '700', color: '#fff' },
 
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
