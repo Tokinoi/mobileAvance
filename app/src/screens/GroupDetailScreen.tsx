@@ -32,6 +32,7 @@ export function GroupDetailScreen() {
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [remoteGroup, setRemoteGroup] = useState<Group | null>(null);
+  const [remoteSubGroups, setRemoteSubGroups] = useState<Group[]>([]);
   const [remoteItems, setRemoteItems] = useState<Item[]>([]);
   const [loadingRemote, setLoadingRemote] = useState(false);
 
@@ -42,8 +43,9 @@ export function GroupDetailScreen() {
       setLoadingRemote(true);
       Promise.all([
         supabase.from('groups').select('*').eq('id', groupId).single(),
+        supabase.from('groups').select('*').eq('parent_id', groupId),
         supabase.from('items').select('*').eq('group_id', groupId),
-      ]).then(([groupRes, itemsRes]) => {
+      ]).then(([groupRes, subGroupsRes, itemsRes]) => {
         if (groupRes.data) {
           const d = groupRes.data;
           setRemoteGroup({
@@ -52,6 +54,14 @@ export function GroupDetailScreen() {
             parentId: d.parent_id ?? undefined, template: d.template ?? undefined,
             isPublic: d.is_public ?? false,
           });
+        }
+        if (subGroupsRes.data) {
+          setRemoteSubGroups(subGroupsRes.data.map((d: any) => ({
+            id: d.id, name: d.name, description: d.description,
+            icon: d.icon, color: d.color, itemCount: d.item_count,
+            parentId: d.parent_id ?? undefined, template: d.template ?? undefined,
+            isPublic: d.is_public ?? false,
+          })));
         }
         if (itemsRes.data) {
           setRemoteItems(itemsRes.data.map((i: any) => ({
@@ -66,7 +76,7 @@ export function GroupDetailScreen() {
 
   const group = ownGroup ?? remoteGroup;
   const isOwn = !!ownGroup;
-  const subGroups = getSubGroups(groupId);
+  const subGroups = isOwn ? getSubGroups(groupId) : remoteSubGroups;
   const groupItems = isOwn ? getGroupItems(groupId) : remoteItems;
 
   if (loadingRemote) {

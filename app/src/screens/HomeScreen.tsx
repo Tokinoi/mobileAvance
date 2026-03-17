@@ -4,6 +4,9 @@ import {
   StyleSheet, useWindowDimensions, SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../navigation/RootNavigator';
 import { supabase } from '../lib/supabase';
 import { Group } from '../types';
 
@@ -52,9 +55,9 @@ function GalleryCard({ group }: { group: Group }) {
 }
 
 /* ── Result rows ── */
-function GroupRow({ group }: { group: Group }) {
+function GroupRow({ group, onPress }: { group: Group; onPress: () => void }) {
   return (
-    <View style={styles.resultRow}>
+    <TouchableOpacity style={styles.resultRow} activeOpacity={0.7} onPress={onPress}>
       <View style={[styles.resultIcon, { backgroundColor: group.color + '20' }]}>
         <Ionicons name={group.icon as any} size={20} color={group.color} />
       </View>
@@ -65,7 +68,7 @@ function GroupRow({ group }: { group: Group }) {
         )}
       </View>
       <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -85,6 +88,7 @@ function UserRow({ user }: { user: UserResult }) {
 
 /* ── Screen ── */
 export function HomeScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [query, setQuery] = useState('');
   const [allGroups, setAllGroups] = useState<Group[]>([]);
   const [loadingGroups, setLoadingGroups] = useState(true);
@@ -117,7 +121,7 @@ export function HomeScreen() {
     }
     setSearching(true);
     const [groupsRes, usersRes] = await Promise.all([
-      supabase.from('groups').select('*').eq('is_public', true).ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
+      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
       supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).limit(10),
     ]);
     setSearchGroups((groupsRes.data ?? []).map(mapGroup));
@@ -184,7 +188,9 @@ export function HomeScreen() {
               {searchGroups.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Groups</Text>
-                  {searchGroups.map((g) => <GroupRow key={g.id} group={g} />)}
+                  {searchGroups.map((g) => (
+                    <GroupRow key={g.id} group={g} onPress={() => navigation.navigate('GroupDetail', { groupId: g.id })} />
+                  ))}
                 </View>
               )}
               {searchUsers.length === 0 && searchGroups.length === 0 && (
@@ -205,7 +211,11 @@ export function HomeScreen() {
           columnWrapperStyle={styles.galleryRow}
           contentContainerStyle={styles.galleryList}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => <GalleryCard group={item} />}
+          renderItem={({ item }) => (
+            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })}>
+              <GalleryCard group={item} />
+            </TouchableOpacity>
+          )}
           ListHeaderComponent={
             loadingGroups ? <ActivityIndicator color="#4F46E5" style={{ marginVertical: 40 }} /> : null
           }
