@@ -126,7 +126,7 @@ export function GroupDetailScreen() {
             return (
               <SubGroupCard
                 group={s}
-                onPress={() => navigation.navigate('GroupDetail', { groupId: s.id })}
+                onPress={() => navigation.push('GroupDetail', { groupId: s.id })}
               />
             );
           }
