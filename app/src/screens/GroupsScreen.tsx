@@ -155,8 +155,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   tab: {
+    flex: 1,
+    alignItems: 'center',
     paddingVertical: 12,
-    paddingHorizontal: 20,
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
     marginBottom: -1,
