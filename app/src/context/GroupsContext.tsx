@@ -58,7 +58,22 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchGroups(); }, []);
+  useEffect(() => {
+    // Fetch on mount if a session already exists (e.g. app reopen)
+    fetchGroups();
+
+    // Re-fetch on every sign-in, clear on sign-out
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        fetchGroups();
+      } else if (event === 'SIGNED_OUT') {
+        setGroups([]);
+        setItems([]);
+      }
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   const addGroup = async (data: Omit<Group, 'id' | 'itemCount'>): Promise<string | null> => {
     const { data: { user } } = await supabase.auth.getUser();
