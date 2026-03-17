@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase';
 interface Friend {
   id: string;
   pseudo: string;
+  inviteStatus: 'none' | 'pending' | 'accepted';
 }
 
 interface Props {
@@ -33,27 +34,52 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
     setQuery('');
     setDone(false);
     setLoading(true);
-    supabase.auth.getUser().then(({ data: { user } }) => {
+
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { setLoading(false); return; }
-      supabase
+
+      const { data: friendData } = await supabase
         .from('friend_requests')
         .select('from_user_id, to_user_id')
         .eq('status', 'accepted')
-        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`)
-        .then(async ({ data }) => {
-          if (!data || data.length === 0) { setFriends([]); setLoading(false); return; }
-          const ids = data.map((r: any) => r.from_user_id === user.id ? r.to_user_id : r.from_user_id);
-          const { data: profiles } = await supabase.from('profiles').select('id, pseudo').in('id', ids);
-          setFriends(profiles ?? []);
-          setLoading(false);
-        });
-    });
-  }, [visible]);
+        .or(`from_user_id.eq.${user.id},to_user_id.eq.${user.id}`);
 
-  const toggle = (id: string) => {
+      if (!friendData || friendData.length === 0) { setFriends([]); setLoading(false); return; }
+
+      const friendIds = friendData.map((r: any) =>
+        r.from_user_id === user.id ? r.to_user_id : r.from_user_id
+      );
+
+      const [{ data: profiles }, { data: invites }] = await Promise.all([
+        supabase.from('profiles').select('id, pseudo').in('id', friendIds),
+        supabase
+          .from('group_invitations')
+          .select('to_user_id, status')
+          .eq('group_id', groupId)
+          .eq('from_user_id', user.id)
+          .in('to_user_id', friendIds),
+      ]);
+
+      const inviteMap: Record<string, 'pending' | 'accepted'> = {};
+      for (const inv of invites ?? []) {
+        if (inv.status === 'accepted') inviteMap[inv.to_user_id] = 'accepted';
+        else if (inv.status === 'pending' && !inviteMap[inv.to_user_id]) inviteMap[inv.to_user_id] = 'pending';
+      }
+
+      setFriends((profiles ?? []).map((p: any) => ({
+        id: p.id,
+        pseudo: p.pseudo,
+        inviteStatus: inviteMap[p.id] ?? 'none',
+      })));
+      setLoading(false);
+    });
+  }, [visible, groupId]);
+
+  const toggle = (friend: Friend) => {
+    if (friend.inviteStatus !== 'none') return;
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(friend.id)) next.delete(friend.id); else next.add(friend.id);
       return next;
     });
   };
@@ -83,16 +109,13 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose} />
       <View style={styles.sheet}>
-        {/* Handle */}
         <View style={styles.handleRow}>
           <View style={styles.handle} />
         </View>
 
-        {/* Title */}
         <Text style={styles.title}>Share with friends</Text>
         <Text style={styles.subtitle} numberOfLines={1}>"{groupName}"</Text>
 
-        {/* Search */}
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={15} color="#9CA3AF" />
           <TextInput
@@ -105,7 +128,6 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
           />
         </View>
 
-        {/* List */}
         {loading ? (
           <ActivityIndicator color="#4F46E5" style={{ marginVertical: 32 }} />
         ) : (
@@ -116,15 +138,29 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
               const isSelected = selected.has(item.id);
+              const disabled = item.inviteStatus !== 'none';
               return (
-                <TouchableOpacity style={styles.row} onPress={() => toggle(item.id)} activeOpacity={0.7}>
+                <TouchableOpacity
+                  style={[styles.row, disabled && styles.rowDisabled]}
+                  onPress={() => toggle(item)}
+                  activeOpacity={disabled ? 1 : 0.7}
+                >
                   <View style={styles.avatar}>
                     <Text style={styles.avatarInitial}>{item.pseudo[0]?.toUpperCase()}</Text>
                   </View>
-                  <Text style={styles.pseudo}>{item.pseudo}</Text>
-                  <View style={[styles.check, isSelected && styles.checkSelected]}>
-                    {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
-                  </View>
+                  <Text style={[styles.pseudo, disabled && styles.pseudoDisabled]}>{item.pseudo}</Text>
+
+                  {item.inviteStatus === 'pending' && (
+                    <Ionicons name="hourglass-outline" size={20} color="#F59E0B" />
+                  )}
+                  {item.inviteStatus === 'accepted' && (
+                    <Ionicons name="checkmark-circle" size={22} color="#16A34A" />
+                  )}
+                  {item.inviteStatus === 'none' && (
+                    <View style={[styles.check, isSelected && styles.checkSelected]}>
+                      {isSelected && <Ionicons name="checkmark" size={14} color="#fff" />}
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             }}
@@ -137,7 +173,6 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
           />
         )}
 
-        {/* Footer */}
         <SafeAreaView edges={['bottom']} style={styles.footer}>
           {done ? (
             <View style={styles.doneRow}>
@@ -165,16 +200,11 @@ export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Pr
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' },
   sheet: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '75%',
-    paddingHorizontal: 16,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    maxHeight: '75%', paddingHorizontal: 16,
   },
   handleRow: { alignItems: 'center', paddingVertical: 10 },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E7EB' },
@@ -192,12 +222,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1, borderBottomColor: '#F9FAFB',
   },
+  rowDisabled: { opacity: 0.6 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
   },
   avatarInitial: { fontSize: 18, fontWeight: '700', color: '#4F46E5' },
   pseudo: { flex: 1, fontSize: 15, fontWeight: '500', color: '#111827' },
+  pseudoDisabled: { color: '#9CA3AF' },
   check: {
     width: 24, height: 24, borderRadius: 12,
     borderWidth: 2, borderColor: '#D1D5DB',
