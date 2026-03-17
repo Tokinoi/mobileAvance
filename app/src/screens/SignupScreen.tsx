@@ -5,14 +5,15 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
+import { ErrorBox } from '../components/atoms/ErrorBox';
+import { ScreenShell } from '../components/templates/ScreenShell';
 
 interface Props {
   onBack: () => void;
@@ -55,7 +56,7 @@ export function SignupScreen({ onBack }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ScreenShell backgroundColor="#F5F3FF">
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -72,11 +73,7 @@ export function SignupScreen({ onBack }: Props) {
 
           {/* Form */}
           <View style={styles.form}>
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
+            <ErrorBox message={error} style={{ marginBottom: 16 }} />
             {success && (
               <View style={styles.successBox}>
                 <Text style={styles.successText}>Account created! Check your email to confirm.</Text>
@@ -156,12 +153,11 @@ export function SignupScreen({ onBack }: Props) {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F3FF' },
   container: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 32 },
   logoSection: { alignItems: 'center', marginBottom: 40 },
@@ -234,15 +230,6 @@ const styles = StyleSheet.create({
     borderColor: '#BBF7D0',
   },
   successText: { color: '#16A34A', fontSize: 13 },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorText: { color: '#DC2626', fontSize: 13 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
   footerText: { fontSize: 14, color: '#6B7280' },
   footerLink: { fontSize: 14, color: '#4F46E5', fontWeight: '600' },

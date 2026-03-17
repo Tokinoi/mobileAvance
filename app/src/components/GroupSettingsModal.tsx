@@ -6,33 +6,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useGroups } from '../context/GroupsContext';
 import { Group } from '../types';
-
-const ICON_OPTIONS: { name: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { name: 'Book', icon: 'book-outline' },
-  { name: 'Game', icon: 'game-controller-outline' },
-  { name: 'Food', icon: 'restaurant-outline' },
-  { name: 'Shirt', icon: 'shirt-outline' },
-  { name: 'Location', icon: 'location-outline' },
-  { name: 'Package', icon: 'cube-outline' },
-  { name: 'Music', icon: 'musical-notes-outline' },
-  { name: 'Film', icon: 'film-outline' },
-  { name: 'Camera', icon: 'camera-outline' },
-  { name: 'Headphones', icon: 'headset-outline' },
-  { name: 'Watch', icon: 'watch-outline' },
-  { name: 'Coffee', icon: 'cafe-outline' },
-  { name: 'Bike', icon: 'bicycle-outline' },
-  { name: 'Fitness', icon: 'barbell-outline' },
-  { name: 'Art', icon: 'color-palette-outline' },
-  { name: 'Travel', icon: 'airplane-outline' },
-  { name: 'Car', icon: 'car-outline' },
-  { name: 'Star', icon: 'star-outline' },
-];
-
-const COLOR_OPTIONS = [
-  '#6366f1', '#ec4899', '#f59e0b', '#8b5cf6',
-  '#10b981', '#06b6d4', '#ef4444', '#f97316',
-  '#84cc16', '#14b8a6', '#3b82f6', '#a855f7',
-];
+import { ICON_OPTIONS, COLOR_OPTIONS } from '../constants/groupOptions';
+import { IconButton } from './atoms/IconButton';
+import { ErrorBox } from './atoms/ErrorBox';
 
 interface Props {
   visible: boolean;
@@ -108,9 +84,7 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
       <SafeAreaView style={styles.safe}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color="#374151" />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
           <View>
             <Text style={styles.title}>Group Settings</Text>
             <Text style={styles.subtitle}>{group.name}</Text>
@@ -125,11 +99,7 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+          <ErrorBox message={error} />
 
           {/* Preview */}
           <View style={styles.card}>
@@ -212,15 +182,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 16, fontWeight: '700', color: '#111827' },
   subtitle: { fontSize: 12, color: '#6B7280' },
   saveBtn: { marginLeft: 'auto', backgroundColor: '#4F46E5', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, minWidth: 56, alignItems: 'center' },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   content: { padding: 16, gap: 16, paddingBottom: 40 },
-  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#FECACA' },
-  errorText: { color: '#DC2626', fontSize: 13 },
   card: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 2 },
   sectionLabel: { fontSize: 13, fontWeight: '500', color: '#6B7280', marginBottom: 12 },
   previewRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },

@@ -6,40 +6,16 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  SafeAreaView,
   useWindowDimensions,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useGroups } from '../context/GroupsContext';
-
-const ICON_OPTIONS: { name: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { name: 'Book', icon: 'book-outline' },
-  { name: 'Game', icon: 'game-controller-outline' },
-  { name: 'Food', icon: 'restaurant-outline' },
-  { name: 'Shirt', icon: 'shirt-outline' },
-  { name: 'Location', icon: 'location-outline' },
-  { name: 'Package', icon: 'cube-outline' },
-  { name: 'Music', icon: 'musical-notes-outline' },
-  { name: 'Film', icon: 'film-outline' },
-  { name: 'Camera', icon: 'camera-outline' },
-  { name: 'Headphones', icon: 'headset-outline' },
-  { name: 'Watch', icon: 'watch-outline' },
-  { name: 'Coffee', icon: 'cafe-outline' },
-  { name: 'Bike', icon: 'bicycle-outline' },
-  { name: 'Fitness', icon: 'barbell-outline' },
-  { name: 'Art', icon: 'color-palette-outline' },
-  { name: 'Travel', icon: 'airplane-outline' },
-  { name: 'Car', icon: 'car-outline' },
-  { name: 'Star', icon: 'star-outline' },
-];
-
-const COLOR_OPTIONS = [
-  '#6366f1', '#ec4899', '#f59e0b', '#8b5cf6',
-  '#10b981', '#06b6d4', '#ef4444', '#f97316',
-  '#84cc16', '#14b8a6', '#3b82f6', '#a855f7',
-];
+import { ICON_OPTIONS, COLOR_OPTIONS } from '../constants/groupOptions';
+import { ScreenHeader } from '../components/molecules/ScreenHeader';
+import { ErrorBox } from '../components/atoms/ErrorBox';
+import { ScreenShell } from '../components/templates/ScreenShell';
 
 export function CreateGroupScreen() {
   const navigation = useNavigation();
@@ -66,14 +42,8 @@ export function CreateGroupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={20} color="#374151" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Group</Text>
-      </View>
+    <ScreenShell>
+      <ScreenHeader title="Create Group" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* Preview */}
@@ -158,11 +128,7 @@ export function CreateGroupScreen() {
           </View>
         </View>
 
-        {error && (
-          <View style={styles.errorBox}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+        <ErrorBox message={error} />
 
         {/* Save */}
         <TouchableOpacity
@@ -176,31 +142,11 @@ export function CreateGroupScreen() {
           }
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
   content: { padding: 16, gap: 16, paddingBottom: 40 },
   card: {
     backgroundColor: '#fff',
@@ -255,12 +201,4 @@ const styles = StyleSheet.create({
   },
   saveBtnDisabled: { opacity: 0.5 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorText: { color: '#DC2626', fontSize: 13 },
 });

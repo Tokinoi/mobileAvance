@@ -6,6 +6,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { TemplateField } from '../types';
+import { IconButton } from './atoms/IconButton';
+import { ErrorBox } from './atoms/ErrorBox';
+import { LocationPermissionPopup } from './organisms/LocationPermissionPopup';
 
 interface Props {
   visible: boolean;
@@ -117,25 +120,15 @@ function LocationField({ value, onChange }: { value: LocationValue | undefined; 
         </View>
       )}
 
-      <Modal visible={permModal} transparent animationType="fade">
-        <View style={locStyles.permOverlay}>
-          <View style={locStyles.permCard}>
-            <View style={locStyles.permIcon}>
-              <Ionicons name="location-outline" size={28} color="#4F46E5" />
-            </View>
-            <Text style={locStyles.permTitle}>Location Access</Text>
-            <Text style={locStyles.permDesc}>
-              We need your location to auto-fill this field with your current position.
-            </Text>
-            <TouchableOpacity style={locStyles.permBtn} onPress={requestAndLocate}>
-              <Text style={locStyles.permBtnText}>Allow Location</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setPermModal(false)}>
-              <Text style={locStyles.permCancel}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <LocationPermissionPopup
+        visible={permModal}
+        title="Location Access"
+        body="We need your location to auto-fill this field with your current position."
+        allowLabel="Allow Location"
+        declineLabel="Cancel"
+        onAllow={requestAndLocate}
+        onDecline={() => setPermModal(false)}
+      />
     </View>
   );
 }
@@ -159,14 +152,6 @@ const locStyles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: '#F3F4F6',
   },
   suggestionText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 18 },
-  permOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center', padding: 32 },
-  permCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', gap: 12, width: '100%' },
-  permIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center' },
-  permTitle: { fontSize: 17, fontWeight: '700', color: '#111827' },
-  permDesc: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 20 },
-  permBtn: { backgroundColor: '#4F46E5', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12, width: '100%', alignItems: 'center' },
-  permBtnText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  permCancel: { fontSize: 14, color: '#9CA3AF', paddingVertical: 4 },
 });
 
 export function AddItemModal({ visible, groupId, fields, onClose, onSave, initialValues, editMode }: Props) {
@@ -283,9 +268,7 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave, initia
       <SafeAreaView style={styles.safe}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color="#374151" />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
           <Text style={styles.title}>{editMode ? 'Edit Item' : 'Add Item'}</Text>
           <TouchableOpacity
             style={[styles.saveBtn, saving && { opacity: 0.7 }]}
@@ -300,11 +283,7 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave, initia
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+          <ErrorBox message={error} />
 
           {noTemplate ? (
             <View style={styles.noTemplate}>
@@ -338,13 +317,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
   saveBtn: { backgroundColor: '#4F46E5', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, minWidth: 56, alignItems: 'center' },
   saveBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   content: { padding: 16, gap: 14, paddingBottom: 40 },
-  errorBox: { backgroundColor: '#FEF2F2', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#FECACA' },
-  errorText: { color: '#DC2626', fontSize: 13 },
   fieldCard: { backgroundColor: '#fff', borderRadius: 14, padding: 16, borderWidth: 1, borderColor: '#F3F4F6', gap: 10, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 1 },
   fieldLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   fieldLabel: { fontSize: 14, fontWeight: '600', color: '#374151' },

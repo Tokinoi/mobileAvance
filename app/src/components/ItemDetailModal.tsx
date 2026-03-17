@@ -1,8 +1,10 @@
 import {
-  Modal, View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView,
+  Modal, View, Text, ScrollView, StyleSheet, SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, TemplateField } from '../types';
+import { IconButton } from './atoms/IconButton';
+import { IconBox } from './atoms/IconBox';
 
 interface Props {
   visible: boolean;
@@ -71,21 +73,21 @@ export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, 
       <SafeAreaView style={styles.safe}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={20} color="#374151" />
-          </TouchableOpacity>
+          <IconButton icon="close" onPress={onClose} />
           <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
-          <TouchableOpacity onPress={onEdit} style={styles.editBtn}>
-            <Ionicons name="pencil-outline" size={18} color="#4F46E5" />
-          </TouchableOpacity>
+          <IconButton
+            icon="pencil-outline"
+            onPress={onEdit}
+            backgroundColor="#EEF2FF"
+            iconColor="#4F46E5"
+            iconSize={18}
+          />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Hero icon */}
           <View style={styles.hero}>
-            <View style={[styles.heroIcon, { backgroundColor: groupColor + '20' }]}>
-              <Ionicons name={groupIcon as any} size={40} color={groupColor} />
-            </View>
+            <IconBox icon={groupIcon as any} color={groupColor} size={40} boxSize={80} borderRadius={24} />
             <Text style={styles.heroName}>{item.name}</Text>
           </View>
 
@@ -117,12 +119,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 14,
     borderBottomWidth: 1, borderBottomColor: '#E5E7EB',
   },
-  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 16, fontWeight: '700', color: '#111827' },
-  editBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center' },
   content: { padding: 16, gap: 12, paddingBottom: 40 },
   hero: { alignItems: 'center', gap: 12, paddingVertical: 24 },
-  heroIcon: { width: 80, height: 80, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   heroName: { fontSize: 22, fontWeight: '700', color: '#111827', textAlign: 'center' },
   fieldCard: {
     backgroundColor: '#fff', borderRadius: 14, padding: 16,

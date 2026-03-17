@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
@@ -11,6 +9,12 @@ import { GroupSettingsModal } from '../components/GroupSettingsModal';
 import { AddItemModal } from '../components/AddItemModal';
 import { ItemDetailModal } from '../components/ItemDetailModal';
 import { Item } from '../types';
+import { ScreenShell } from '../components/templates/ScreenShell';
+import { GroupDetailHeader } from '../components/organisms/GroupDetailHeader';
+import { FABMenu } from '../components/organisms/FABMenu';
+import { SubGroupCard } from '../components/molecules/SubGroupCard';
+import { ItemCard } from '../components/molecules/ItemCard';
+import { EmptyState } from '../components/atoms/EmptyState';
 
 type GroupDetailRouteProp = RouteProp<RootStackParamList, 'GroupDetail'>;
 
@@ -28,58 +32,27 @@ export function GroupDetailScreen() {
   const group = groups.find((g) => g.id === groupId);
   const subGroups = getSubGroups(groupId);
   const groupItems = getGroupItems(groupId);
-  const hasTemplate = (group?.template?.length ?? 0) > 0;
-
   if (!group) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <ScreenShell>
         <View style={styles.centered}>
           <Text style={styles.notFound}>Group not found</Text>
         </View>
-      </SafeAreaView>
+      </ScreenShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => group.parentId
-            ? navigation.navigate('GroupDetail', { groupId: group.parentId })
-            : navigation.goBack()
-          }
-          style={styles.iconBtn}
-        >
-          <Ionicons name="arrow-back" size={20} color="#374151" />
-        </TouchableOpacity>
-
-        <View style={[styles.groupIcon, { backgroundColor: group.color + '20' }]}>
-          <Ionicons name={group.icon as any} size={24} color={group.color} />
-        </View>
-
-        <View style={styles.groupMeta}>
-          <Text style={styles.groupName}>{group.name}</Text>
-          {!!group.description && <Text style={styles.groupDesc} numberOfLines={1}>{group.description}</Text>}
-        </View>
-
-        <TouchableOpacity
-          style={[styles.templateBtn, hasTemplate ? styles.templateBtnHas : styles.templateBtnNone]}
-          onPress={() => setTemplateVisible(true)}
-        >
-          <Ionicons
-            name={hasTemplate ? 'list-outline' : 'add-outline'}
-            size={16}
-            color={hasTemplate ? '#16A34A' : '#9CA3AF'}
-          />
-          <Text style={[styles.templateBtnText, hasTemplate ? styles.templateBtnTextHas : styles.templateBtnTextNone]}>
-            {hasTemplate ? 'Template' : 'No Template'}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.iconBtn, { marginLeft: 8 }]} onPress={() => setSettingsVisible(true)}>
-          <Ionicons name="settings-outline" size={20} color="#374151" />
-        </TouchableOpacity>
-      </View>
+    <ScreenShell style={{ paddingTop: 16 }}>
+      <GroupDetailHeader
+        group={group}
+        onBack={() => group.parentId
+          ? navigation.navigate('GroupDetail', { groupId: group.parentId })
+          : navigation.goBack()
+        }
+        onTemplatePress={() => setTemplateVisible(true)}
+        onSettingsPress={() => setSettingsVisible(true)}
+      />
 
       <FlatList
         data={[
@@ -99,87 +72,52 @@ export function GroupDetailScreen() {
           if (entry.kind === 'subgroup') {
             const s = entry.item as typeof subGroups[0];
             return (
-              <TouchableOpacity
-                style={styles.subGroupCard}
-                activeOpacity={0.8}
+              <SubGroupCard
+                group={s}
                 onPress={() => navigation.navigate('GroupDetail', { groupId: s.id })}
-              >
-                <View style={[styles.subGroupIcon, { backgroundColor: s.color + '20' }]}>
-                  <Ionicons name={s.icon as any} size={20} color={s.color} />
-                </View>
-                <Text style={styles.subGroupName}>{s.name}</Text>
-                <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-              </TouchableOpacity>
+              />
             );
           }
           const i = entry.item as typeof groupItems[0];
           const template = resolveTemplate(groupId);
           const visibleFields = (template ?? []).filter((f) => f.visible !== false && f.id !== 'name');
           return (
-            <TouchableOpacity style={styles.itemCard} activeOpacity={0.8} onPress={() => setSelectedItem(i)}>
-              <View style={[styles.itemIcon, { backgroundColor: group.color + '20' }]}>
-                <Ionicons name={group.icon as any} size={18} color={group.color} />
-              </View>
-              <View style={styles.itemBody}>
-                <Text style={styles.itemName}>{i.name}</Text>
-                {visibleFields.length > 0 && (
-                  <View style={styles.itemFields}>
-                    {visibleFields.map((f) => {
-                      const val = i.data[f.id];
-                      if (val === undefined || val === null || val === '') return null;
-                      const display = f.type === 'location' && typeof val === 'object'
-                        ? (val.label ?? `${val.latitude?.toFixed(4)}, ${val.longitude?.toFixed(4)}`)
-                        : String(val);
-                      return (
-                        <View key={f.id} style={styles.itemField}>
-                          <Text style={styles.itemFieldLabel}>{f.name}:</Text>
-                          <Text style={styles.itemFieldValue}>{display}</Text>
-                        </View>
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
+            <ItemCard
+              item={i}
+              groupColor={group.color}
+              groupIcon={group.icon}
+              visibleFields={visibleFields}
+              onPress={() => setSelectedItem(i)}
+            />
           );
         }}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <View style={[styles.emptyIcon, { backgroundColor: group.color + '15' }]}>
-              <Ionicons name={group.icon as any} size={32} color={group.color} />
-            </View>
-            <Text style={styles.emptyTitle}>No items yet</Text>
-            <Text style={styles.emptySubtitle}>Tap the + button to add your first item</Text>
-          </View>
+          <EmptyState
+            icon={group.icon as any}
+            iconColor={group.color}
+            iconSize={32}
+            title="No items yet"
+            subtitle="Tap the + button to add your first item"
+          />
         }
       />
 
-      {/* FAB popup */}
-      {fabOpen && (
-        <>
-          <TouchableOpacity style={styles.fabBackdrop} onPress={() => setFabOpen(false)} />
-          <View style={styles.fabMenu}>
-            <TouchableOpacity style={styles.fabMenuItem} onPress={() => { setFabOpen(false); navigation.navigate('CreateGroup', { parentId: groupId }); }}>
-              <View style={styles.fabMenuIcon}>
-                <Ionicons name="folder-outline" size={18} color="#4F46E5" />
-              </View>
-              <Text style={styles.fabMenuText}>SubGroup</Text>
-            </TouchableOpacity>
-            <View style={styles.fabMenuDivider} />
-            <TouchableOpacity style={styles.fabMenuItem} onPress={() => { setFabOpen(false); setAddItemVisible(true); }}>
-              <View style={styles.fabMenuIcon}>
-                <Ionicons name="document-outline" size={18} color="#4F46E5" />
-              </View>
-              <Text style={styles.fabMenuText}>Item</Text>
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-
-      {/* FAB */}
-      <TouchableOpacity style={styles.fab} onPress={() => setFabOpen((v) => !v)}>
-        <Ionicons name={fabOpen ? 'close' : 'add'} size={28} color="#fff" />
-      </TouchableOpacity>
+      <FABMenu
+        open={fabOpen}
+        onToggle={() => setFabOpen((v) => !v)}
+        items={[
+          {
+            icon: 'folder-outline',
+            label: 'SubGroup',
+            onPress: () => { setFabOpen(false); navigation.navigate('CreateGroup', { parentId: groupId }); },
+          },
+          {
+            icon: 'document-outline',
+            label: 'Item',
+            onPress: () => { setFabOpen(false); setAddItemVisible(true); },
+          },
+        ]}
+      />
 
       <TemplateModal
         visible={templateVisible}
@@ -222,154 +160,13 @@ export function GroupDetailScreen() {
         onClose={() => setEditingItem(null)}
         onSave={(name, values) => updateItem(editingItem!.id, name, values)}
       />
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB', paddingTop: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   notFound: { color: '#6B7280', fontSize: 16 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F3F4F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#EEF2FF',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 36,
-  },
-  templateBtnText: { fontSize: 13, fontWeight: '600' },
-  templateBtnHas: { backgroundColor: '#F0FDF4' },
-  templateBtnNone: { backgroundColor: '#F3F4F6' },
-  templateBtnTextHas: { color: '#16A34A' },
-  templateBtnTextNone: { color: '#9CA3AF' },
-  headerSpacer: { flex: 1 },
-  groupInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-    backgroundColor: '#fff',
-    paddingHorizontal: 16,
-    paddingVertical: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  groupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  groupMeta: { flex: 1 },
-  groupName: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  groupDesc: { fontSize: 12, color: '#6B7280' },
-  groupCount: { fontSize: 12, color: '#9CA3AF', marginTop: 4 },
   listContent: { flexGrow: 1, padding: 16, gap: 10 },
   sectionTitle: { fontSize: 13, fontWeight: '600', color: '#6B7280', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  subGroupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  subGroupIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  subGroupName: { flex: 1, fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  itemIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  itemBody: { flex: 1, gap: 4 },
-  itemName: { fontSize: 15, fontWeight: '600', color: '#111827' },
-  itemFields: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  itemField: { flexDirection: 'row', gap: 3, alignItems: 'center' },
-  itemFieldLabel: { fontSize: 12, color: '#9CA3AF', fontWeight: '500' },
-  itemFieldValue: { fontSize: 12, color: '#6B7280' },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80, gap: 12 },
-  emptyIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#374151' },
-  emptySubtitle: { fontSize: 13, color: '#9CA3AF' },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#4F46E5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#4F46E5',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  fabBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 10,
-  },
-  fabMenu: {
-    position: 'absolute',
-    bottom: 92,
-    right: 24,
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    zIndex: 11,
-    shadowColor: '#000',
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-    overflow: 'hidden',
-  },
-  fabMenuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  fabMenuIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fabMenuText: { fontSize: 15, fontWeight: '500', color: '#111827' },
-  fabMenuDivider: { height: 1, backgroundColor: '#F3F4F6', marginHorizontal: 16 },
 });

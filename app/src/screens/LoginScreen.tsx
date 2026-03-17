@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -13,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { SignupScreen } from './SignupScreen';
+import { ErrorBox } from '../components/atoms/ErrorBox';
+import { ScreenShell } from '../components/templates/ScreenShell';
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -38,7 +39,7 @@ export function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <ScreenShell backgroundColor="#F5F3FF">
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -54,11 +55,7 @@ export function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
-          {error && (
-            <View style={styles.errorBox}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          )}
+          <ErrorBox message={error} style={{ marginBottom: 16 }} />
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -119,12 +116,11 @@ export function LoginScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F5F3FF' },
   container: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
   logoSection: { alignItems: 'center', marginBottom: 48 },
   logoBox: {
@@ -153,15 +149,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
-  },
-  errorText: { color: '#DC2626', fontSize: 13 },
   label: { fontSize: 13, fontWeight: '500', color: '#374151', marginBottom: 8 },
   input: {
     backgroundColor: '#F9FAFB',
