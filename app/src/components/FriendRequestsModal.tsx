@@ -23,18 +23,27 @@ export function FriendRequestsModal({ visible, userId, onClose, onChanged }: Pro
 
   const fetchInvitations = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const { data: requests } = await supabase
       .from('friend_requests')
-      .select('id, from_user_id, profiles!from_user_id(pseudo)')
+      .select('id, from_user_id')
       .eq('to_user_id', userId)
       .eq('status', 'pending');
-    if (data) {
-      setInvitations(data.map((r: any) => ({
-        id: r.id,
-        from_user_id: r.from_user_id,
-        pseudo: r.profiles?.pseudo ?? 'Unknown',
-      })));
+    if (!requests || requests.length === 0) {
+      setInvitations([]);
+      setLoading(false);
+      return;
     }
+    const fromIds = requests.map((r: any) => r.from_user_id);
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, pseudo')
+      .in('id', fromIds);
+    const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p.pseudo]));
+    setInvitations(requests.map((r: any) => ({
+      id: r.id,
+      from_user_id: r.from_user_id,
+      pseudo: profileMap[r.from_user_id] ?? 'Unknown',
+    })));
     setLoading(false);
   };
 
