@@ -97,18 +97,21 @@ export function HomeScreen() {
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Gallery: all root-level groups on mount
+  // Gallery: public root-level groups from other users
   useEffect(() => {
-    supabase
-      .from('groups')
-      .select('*')
-      .is('parent_id', null)
-      .eq('is_public', true)
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        setAllGroups((data ?? []).map(mapGroup));
-        setLoadingGroups(false);
-      });
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      supabase
+        .from('groups')
+        .select('*')
+        .is('parent_id', null)
+        .eq('is_public', true)
+        .neq('user_id', user!.id)
+        .order('created_at', { ascending: false })
+        .then(({ data }) => {
+          setAllGroups((data ?? []).map(mapGroup));
+          setLoadingGroups(false);
+        });
+    });
   }, []);
 
   const runSearch = async (q: string) => {
@@ -120,9 +123,10 @@ export function HomeScreen() {
       return;
     }
     setSearching(true);
+    const { data: { user } } = await supabase.auth.getUser();
     const [groupsRes, usersRes] = await Promise.all([
-      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
-      supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).limit(10),
+      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).neq('user_id', user!.id).order('name', { ascending: true }).limit(30),
+      supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).neq('id', user!.id).limit(10),
     ]);
     setSearchGroups((groupsRes.data ?? []).map(mapGroup));
     setSearchUsers(usersRes.error ? [] : (usersRes.data ?? []));
