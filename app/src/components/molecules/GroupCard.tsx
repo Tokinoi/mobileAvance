@@ -8,9 +8,10 @@ import { ShareToFriendsModal } from '../ShareToFriendsModal';
 interface GroupCardProps {
   group: Group;
   onPress: () => void;
+  readOnly?: boolean;
 }
 
-export function GroupCard({ group, onPress }: GroupCardProps) {
+export function GroupCard({ group, onPress, readOnly = false }: GroupCardProps) {
   const [shareVisible, setShareVisible] = useState(false);
 
   return (
@@ -21,17 +22,21 @@ export function GroupCard({ group, onPress }: GroupCardProps) {
           <Text style={styles.name}>{group.name}</Text>
           <Text style={styles.desc} numberOfLines={1}>{group.description}</Text>
         </View>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
-          <Ionicons name="share-outline" size={18} color="#9CA3AF" />
-        </TouchableOpacity>
+        {!readOnly && (
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
+            <Ionicons name="share-outline" size={18} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
 
-      <ShareToFriendsModal
-        visible={shareVisible}
-        groupId={group.id}
-        groupName={group.name}
-        onClose={() => setShareVisible(false)}
-      />
+      {!readOnly && (
+        <ShareToFriendsModal
+          visible={shareVisible}
+          groupId={group.id}
+          groupName={group.name}
+          onClose={() => setShareVisible(false)}
+        />
+      )}
     </>
   );
 }

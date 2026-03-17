@@ -15,7 +15,7 @@ interface Props {
   groupColor: string;
   groupIcon: string;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
 }
 
 const RATING_OPTIONS = [1, 2, 3, 4, 5];
@@ -111,13 +111,15 @@ export function ItemDetailModal({ visible, item, fields, groupColor, groupIcon, 
           <View style={styles.header}>
             <IconButton icon="close" onPress={onClose} />
             <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
-            <IconButton
-              icon="pencil-outline"
-              onPress={onEdit}
-              backgroundColor="#EEF2FF"
-              iconColor="#4F46E5"
-              iconSize={18}
-            />
+            {onEdit ? (
+              <IconButton
+                icon="pencil-outline"
+                onPress={onEdit}
+                backgroundColor="#EEF2FF"
+                iconColor="#4F46E5"
+                iconSize={18}
+              />
+            ) : <View style={{ width: 36 }} />}
           </View>
 
           <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

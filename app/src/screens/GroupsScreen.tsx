@@ -120,7 +120,7 @@ export function GroupsScreen() {
           data={activeGroups}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <GroupCard group={item} onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })} />
+            <GroupCard group={item} onPress={() => navigation.navigate('GroupDetail', { groupId: item.id })} readOnly={tab === 'shared'} />
           )}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}

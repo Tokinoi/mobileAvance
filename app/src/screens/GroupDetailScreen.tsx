@@ -127,6 +127,7 @@ export function GroupDetailScreen() {
               <SubGroupCard
                 group={s}
                 onPress={() => navigation.push('GroupDetail', { groupId: s.id })}
+                readOnly={!isOwn}
               />
             );
           }
@@ -202,7 +203,7 @@ export function GroupDetailScreen() {
         groupColor={group.color}
         groupIcon={group.icon}
         onClose={() => setSelectedItem(null)}
-        onEdit={() => { setEditingItem(selectedItem); setSelectedItem(null); }}
+        onEdit={isOwn ? () => { setEditingItem(selectedItem); setSelectedItem(null); } : undefined}
       />
 
       <AddItemModal

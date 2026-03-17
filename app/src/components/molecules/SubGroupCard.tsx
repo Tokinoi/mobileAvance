@@ -8,9 +8,10 @@ import { ShareToFriendsModal } from '../ShareToFriendsModal';
 interface SubGroupCardProps {
   group: Group;
   onPress: () => void;
+  readOnly?: boolean;
 }
 
-export function SubGroupCard({ group, onPress }: SubGroupCardProps) {
+export function SubGroupCard({ group, onPress, readOnly = false }: SubGroupCardProps) {
   const [shareVisible, setShareVisible] = useState(false);
 
   return (
@@ -18,17 +19,21 @@ export function SubGroupCard({ group, onPress }: SubGroupCardProps) {
       <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
         <IconBox icon={group.icon as any} color={group.color} size={20} boxSize={36} borderRadius={10} />
         <Text style={styles.name}>{group.name}</Text>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
-          <Ionicons name="share-outline" size={16} color="#9CA3AF" />
-        </TouchableOpacity>
+        {!readOnly && (
+          <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
+            <Ionicons name="share-outline" size={16} color="#9CA3AF" />
+          </TouchableOpacity>
+        )}
       </TouchableOpacity>
 
-      <ShareToFriendsModal
-        visible={shareVisible}
-        groupId={group.id}
-        groupName={group.name}
-        onClose={() => setShareVisible(false)}
-      />
+      {!readOnly && (
+        <ShareToFriendsModal
+          visible={shareVisible}
+          groupId={group.id}
+          groupName={group.name}
+          onClose={() => setShareVisible(false)}
+        />
+      )}
     </>
   );
 }
