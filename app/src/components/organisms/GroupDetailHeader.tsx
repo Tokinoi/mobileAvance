@@ -7,8 +7,8 @@ import { Group } from '../types';
 interface GroupDetailHeaderProps {
   group: Group;
   onBack: () => void;
-  onTemplatePress: () => void;
-  onSettingsPress: () => void;
+  onTemplatePress?: () => void;
+  onSettingsPress?: () => void;
 }
 
 export function GroupDetailHeader({ group, onBack, onTemplatePress, onSettingsPress }: GroupDetailHeaderProps) {
@@ -27,21 +27,25 @@ export function GroupDetailHeader({ group, onBack, onTemplatePress, onSettingsPr
         )}
       </View>
 
-      <TouchableOpacity
-        style={[styles.templateBtn, hasTemplate ? styles.templateBtnHas : styles.templateBtnNone]}
-        onPress={onTemplatePress}
-      >
-        <Ionicons
-          name={hasTemplate ? 'list-outline' : 'add-outline'}
-          size={16}
-          color={hasTemplate ? '#16A34A' : '#9CA3AF'}
-        />
-        <Text style={[styles.templateBtnText, hasTemplate ? styles.templateBtnTextHas : styles.templateBtnTextNone]}>
-          {hasTemplate ? 'Template' : 'No Template'}
-        </Text>
-      </TouchableOpacity>
+      {!!onTemplatePress && (
+        <TouchableOpacity
+          style={[styles.templateBtn, hasTemplate ? styles.templateBtnHas : styles.templateBtnNone]}
+          onPress={onTemplatePress}
+        >
+          <Ionicons
+            name={hasTemplate ? 'list-outline' : 'add-outline'}
+            size={16}
+            color={hasTemplate ? '#16A34A' : '#9CA3AF'}
+          />
+          <Text style={[styles.templateBtnText, hasTemplate ? styles.templateBtnTextHas : styles.templateBtnTextNone]}>
+            {hasTemplate ? 'Template' : 'No Template'}
+          </Text>
+        </TouchableOpacity>
+      )}
 
-      <IconButton icon="settings-outline" onPress={onSettingsPress} style={{ marginLeft: 8 }} />
+      {!!onSettingsPress && (
+        <IconButton icon="settings-outline" onPress={onSettingsPress} style={{ marginLeft: 8 }} />
+      )}
     </View>
   );
 }

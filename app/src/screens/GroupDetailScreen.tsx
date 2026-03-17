@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { useGroups } from '../context/GroupsContext';
+import { supabase } from '../lib/supabase';
+import { Group } from '../types';
 import { TemplateModal } from '../components/TemplateModal';
 import { GroupSettingsModal } from '../components/GroupSettingsModal';
 import { AddItemModal } from '../components/AddItemModal';
@@ -29,9 +31,52 @@ export function GroupDetailScreen() {
   const [fabOpen, setFabOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [editingItem, setEditingItem] = useState<Item | null>(null);
-  const group = groups.find((g) => g.id === groupId);
+  const [remoteGroup, setRemoteGroup] = useState<Group | null>(null);
+  const [remoteItems, setRemoteItems] = useState<Item[]>([]);
+  const [loadingRemote, setLoadingRemote] = useState(false);
+
+  const ownGroup = groups.find((g) => g.id === groupId);
+
+  useEffect(() => {
+    if (!ownGroup) {
+      setLoadingRemote(true);
+      Promise.all([
+        supabase.from('groups').select('*').eq('id', groupId).single(),
+        supabase.from('items').select('*').eq('group_id', groupId),
+      ]).then(([groupRes, itemsRes]) => {
+        if (groupRes.data) {
+          const d = groupRes.data;
+          setRemoteGroup({
+            id: d.id, name: d.name, description: d.description,
+            icon: d.icon, color: d.color, itemCount: d.item_count,
+            parentId: d.parent_id ?? undefined, template: d.template ?? undefined,
+            isPublic: d.is_public ?? false,
+          });
+        }
+        if (itemsRes.data) {
+          setRemoteItems(itemsRes.data.map((i: any) => ({
+            id: i.id, groupId: i.group_id, name: i.name,
+            data: i.data ?? {}, createdAt: i.created_at,
+          })));
+        }
+        setLoadingRemote(false);
+      });
+    }
+  }, [groupId, ownGroup]);
+
+  const group = ownGroup ?? remoteGroup;
+  const isOwn = !!ownGroup;
   const subGroups = getSubGroups(groupId);
-  const groupItems = getGroupItems(groupId);
+  const groupItems = isOwn ? getGroupItems(groupId) : remoteItems;
+
+  if (loadingRemote) {
+    return (
+      <ScreenShell>
+        <View style={styles.centered}><ActivityIndicator color="#4F46E5" /></View>
+      </ScreenShell>
+    );
+  }
+
   if (!group) {
     return (
       <ScreenShell>
@@ -50,8 +95,8 @@ export function GroupDetailScreen() {
           ? navigation.navigate('GroupDetail', { groupId: group.parentId })
           : navigation.goBack()
         }
-        onTemplatePress={() => setTemplateVisible(true)}
-        onSettingsPress={() => setSettingsVisible(true)}
+        onTemplatePress={isOwn ? () => setTemplateVisible(true) : undefined}
+        onSettingsPress={isOwn ? () => setSettingsVisible(true) : undefined}
       />
 
       <FlatList
@@ -102,22 +147,24 @@ export function GroupDetailScreen() {
         }
       />
 
-      <FABMenu
-        open={fabOpen}
-        onToggle={() => setFabOpen((v) => !v)}
-        items={[
-          {
-            icon: 'folder-outline',
-            label: 'SubGroup',
-            onPress: () => { setFabOpen(false); navigation.navigate('CreateGroup', { parentId: groupId }); },
-          },
-          {
-            icon: 'document-outline',
-            label: 'Item',
-            onPress: () => { setFabOpen(false); setAddItemVisible(true); },
-          },
-        ]}
-      />
+      {isOwn && (
+        <FABMenu
+          open={fabOpen}
+          onToggle={() => setFabOpen((v) => !v)}
+          items={[
+            {
+              icon: 'folder-outline',
+              label: 'SubGroup',
+              onPress: () => { setFabOpen(false); navigation.navigate('CreateGroup', { parentId: groupId }); },
+            },
+            {
+              icon: 'document-outline',
+              label: 'Item',
+              onPress: () => { setFabOpen(false); setAddItemVisible(true); },
+            },
+          ]}
+        />
+      )}
 
       <TemplateModal
         visible={templateVisible}
