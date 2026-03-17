@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { FriendsListModal } from '../components/FriendsListModal';
 
 interface FriendRequest {
   id: string;
@@ -20,6 +21,7 @@ export function ProfileScreen() {
   const initial = pseudo[0]?.toUpperCase() ?? 'U';
 
   const [friendsCount, setFriendsCount] = useState(0);
+  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
   const [invitations, setInvitations] = useState<FriendRequest[]>([]);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [responding, setResponding] = useState<string | null>(null);
@@ -92,12 +94,12 @@ export function ProfileScreen() {
         {/* Name + friends */}
         <View style={styles.userInfo}>
           <Text style={styles.name}>{pseudo}</Text>
-          <View style={styles.friendsRow}>
+          <TouchableOpacity style={styles.friendsRow} onPress={() => setFriendsModalVisible(true)}>
             <Ionicons name="people-outline" size={16} color="#6B7280" />
             <Text style={styles.friendsText}>
               <Text style={styles.friendsCount}>{friendsCount}</Text>{' friends'}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Invitations */}
@@ -137,6 +139,12 @@ export function ProfileScreen() {
         {/* Spacer for footer */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <FriendsListModal
+        visible={friendsModalVisible}
+        userId={session?.user?.id ?? ''}
+        onClose={() => setFriendsModalVisible(false)}
+      />
 
       {/* Sign out — pinned to bottom */}
       <SafeAreaView edges={['bottom']} style={styles.footer}>
