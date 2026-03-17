@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, useWindowDimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -6,12 +6,19 @@ import { useAuth } from '../context/AuthContext';
 const FRIENDS_COUNT = 0;
 
 export function ProfileScreen() {
-  const { session } = useAuth();
+  const { session, logout } = useAuth();
   const { height } = useWindowDimensions();
   const bannerHeight = height * 0.2;
 
   const pseudo = session?.user?.user_metadata?.pseudo ?? session?.user?.email?.split('@')[0] ?? 'User';
   const initial = pseudo[0]?.toUpperCase() ?? 'U';
+
+  const handleLogout = () => {
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: logout },
+    ]);
+  };
 
   return (
     <View style={styles.container}>
@@ -43,6 +50,14 @@ export function ProfileScreen() {
           </Text>
         </View>
       </View>
+
+      {/* Disconnect button — pinned to bottom */}
+      <SafeAreaView edges={['bottom']} style={styles.footer}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+          <Text style={styles.logoutText}>Sign out</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
     </View>
   );
 }
@@ -121,5 +136,31 @@ const styles = StyleSheet.create({
   friendsCount: {
     fontWeight: '700',
     color: '#111827',
+  },
+
+  /* ── Footer ── */
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  logoutText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#EF4444',
   },
 });
