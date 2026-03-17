@@ -27,25 +27,26 @@ export function ProfileScreen() {
   const fetchInvitations = async () => {
     const userId = session?.user?.id;
     if (!userId) return;
+
     const [invRes, friendsRes] = await Promise.all([
-      supabase
-        .from('friend_requests')
-        .select('id, from_user_id, profiles!from_user_id(pseudo)')
-        .eq('to_user_id', userId)
-        .eq('status', 'pending'),
-      supabase
-        .from('friend_requests')
-        .select('id')
-        .eq('status', 'accepted')
-        .or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`),
+      supabase.from('friend_requests').select('id, from_user_id').eq('to_user_id', userId).eq('status', 'pending'),
+      supabase.from('friend_requests').select('id').eq('status', 'accepted').or(`from_user_id.eq.${userId},to_user_id.eq.${userId}`),
     ]);
-    if (invRes.data) {
+
+    if (invRes.data && invRes.data.length > 0) {
+      const fromIds = invRes.data.map((r: any) => r.from_user_id);
+      const { data: profiles } = await supabase.from('profiles').select('id, pseudo').in('id', fromIds);
+      const pseudoMap: Record<string, string> = {};
+      (profiles ?? []).forEach((p: any) => { pseudoMap[p.id] = p.pseudo; });
       setInvitations(invRes.data.map((r: any) => ({
         id: r.id,
         from_user_id: r.from_user_id,
-        pseudo: r.profiles?.pseudo ?? 'Unknown',
+        pseudo: pseudoMap[r.from_user_id] ?? 'Unknown',
       })));
+    } else {
+      setInvitations([]);
     }
+
     if (friendsRes.data) setFriendsCount(friendsRes.data.length);
     setLoadingInvitations(false);
   };
