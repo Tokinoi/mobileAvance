@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Modal, View, Text, TextInput, TouchableOpacity,
-  ScrollView, StyleSheet, SafeAreaView, Switch, ActivityIndicator,
+  ScrollView, StyleSheet, SafeAreaView, Switch, ActivityIndicator, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import { TemplateField } from '../types';
 import { IconButton } from './atoms/IconButton';
 import { ErrorBox } from './atoms/ErrorBox';
@@ -154,6 +155,82 @@ const locStyles = StyleSheet.create({
   suggestionText: { flex: 1, fontSize: 13, color: '#374151', lineHeight: 18 },
 });
 
+function ImageField({ value, onChange }: { value: string | undefined; onChange: (v: string) => void }) {
+  const [permModal, setPermModal] = useState(false);
+  const pendingCamera = useRef(false);
+
+  const handlePress = async (useCamera: boolean) => {
+    const cam = await ImagePicker.getCameraPermissionsAsync();
+    const lib = await ImagePicker.getMediaLibraryPermissionsAsync();
+    if (cam.status !== 'granted' || lib.status !== 'granted') {
+      pendingCamera.current = useCamera;
+      setPermModal(true);
+      return;
+    }
+    await launch(useCamera);
+  };
+
+  const launch = async (useCamera: boolean) => {
+    const result = useCamera
+      ? await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 0.8 })
+      : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, quality: 0.8 });
+    if (!result.canceled && result.assets[0]) onChange(result.assets[0].uri);
+  };
+
+  const onAllow = async () => {
+    setPermModal(false);
+    await ImagePicker.requestCameraPermissionsAsync();
+    await ImagePicker.requestMediaLibraryPermissionsAsync();
+    await launch(pendingCamera.current);
+  };
+
+  return (
+    <View>
+      {value ? (
+        <View style={imgStyles.preview}>
+          <Image source={{ uri: value }} style={imgStyles.image} resizeMode="cover" />
+          <TouchableOpacity style={imgStyles.removeBtn} onPress={() => onChange('')}>
+            <Ionicons name="close-circle" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={imgStyles.btnRow}>
+          <TouchableOpacity style={imgStyles.btn} onPress={() => handlePress(false)}>
+            <Ionicons name="image-outline" size={20} color="#4F46E5" />
+            <Text style={imgStyles.btnText}>Gallery</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={imgStyles.btn} onPress={() => handlePress(true)}>
+            <Ionicons name="camera-outline" size={20} color="#4F46E5" />
+            <Text style={imgStyles.btnText}>Camera</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      <LocationPermissionPopup
+        visible={permModal}
+        title="Camera & Storage Access"
+        body="We need access to your camera and photo library to attach images to items."
+        allowLabel="Allow Access"
+        declineLabel="Cancel"
+        onAllow={onAllow}
+        onDecline={() => setPermModal(false)}
+      />
+    </View>
+  );
+}
+
+const imgStyles = StyleSheet.create({
+  btnRow: { flexDirection: 'row', gap: 10 },
+  btn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#EEF2FF', borderRadius: 10, paddingVertical: 12,
+    borderWidth: 1, borderColor: '#C7D2FE',
+  },
+  btnText: { fontSize: 14, fontWeight: '600', color: '#4F46E5' },
+  preview: { position: 'relative' },
+  image: { width: '100%', height: 180, borderRadius: 10 },
+  removeBtn: { position: 'absolute', top: 6, right: 6, backgroundColor: '#fff', borderRadius: 12 },
+});
+
 export function AddItemModal({ visible, groupId, fields, onClose, onSave, initialValues, editMode }: Props) {
   const [values, setValues] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
@@ -251,6 +328,14 @@ export function AddItemModal({ visible, groupId, fields, onClose, onSave, initia
       case 'location':
         return (
           <LocationField
+            value={val}
+            onChange={(v) => setValue(field.id, v)}
+          />
+        );
+
+      case 'image':
+        return (
+          <ImageField
             value={val}
             onChange={(v) => setValue(field.id, v)}
           />

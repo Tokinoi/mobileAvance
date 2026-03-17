@@ -33,6 +33,13 @@
         {
           "locationWhenInUsePermission": "Allow Inventory to access your location to show it on the map."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Inventory to access your photos to attach images to items.",
+          "cameraPermission": "Allow Inventory to use the camera to take photos for items."
+        }
       ]
     ]
   }
