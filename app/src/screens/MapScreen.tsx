@@ -1,12 +1,13 @@
 import { useRef, useState, useMemo, useCallback } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
 import { useGroups } from '../context/GroupsContext';
 import { FAB } from '../components/atoms/FAB';
 import { LocationPermissionPopup } from '../components/organisms/LocationPermissionPopup';
 import { MapFilterButton, MapFilterPanel } from '../components/organisms/MapFilterPanel';
+import { ItemDetailModal } from '../components/ItemDetailModal';
 
 interface PinnedItem {
   id: string;
@@ -15,6 +16,8 @@ interface PinnedItem {
   latitude: number;
   longitude: number;
   groupColor: string;
+  groupIcon: string;
+  groupId: string;
 }
 
 export function MapScreen() {
@@ -37,6 +40,7 @@ export function MapScreen() {
   }, []));
   const [showFilter, setShowFilter] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<Set<string> | null>(null); // null = all
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
   // Groups that have at least one location field in their resolved template
   const groupsWithLocation = useMemo(() => {
@@ -71,6 +75,8 @@ export function MapScreen() {
             latitude: val.latitude,
             longitude: val.longitude,
             groupColor: group?.color ?? '#4F46E5',
+            groupIcon: group?.icon ?? 'cube-outline',
+            groupId: item.groupId,
           });
           break;
         }
@@ -118,6 +124,7 @@ export function MapScreen() {
           <Marker
             key={pin.id}
             coordinate={{ latitude: pin.latitude, longitude: pin.longitude }}
+            onPress={() => setSelectedItemId(pin.id)}
           >
             <View style={styles.pinContainer}>
               <View style={[styles.pinCircle, { backgroundColor: pin.groupColor }]}>
@@ -125,12 +132,6 @@ export function MapScreen() {
               </View>
               <View style={[styles.pinTip, { borderTopColor: pin.groupColor }]} />
             </View>
-            <Callout tooltip>
-              <View style={styles.callout}>
-                <Text style={styles.calloutName}>{pin.name}</Text>
-                <Text style={styles.calloutLabel}>{pin.label}</Text>
-              </View>
-            </Callout>
           </Marker>
         ))}
       </MapView>
@@ -174,6 +175,23 @@ export function MapScreen() {
         onAllow={requestPermission}
         onDecline={declinePermission}
       />
+
+      {(() => {
+        const item = items.find((i) => i.id === selectedItemId) ?? null;
+        const pin = pinnedItems.find((p) => p.id === selectedItemId);
+        const fields = pin ? resolveTemplate(pin.groupId) ?? [] : [];
+        return (
+          <ItemDetailModal
+            visible={selectedItemId !== null}
+            item={item}
+            fields={fields}
+            groupColor={pin?.groupColor ?? '#4F46E5'}
+            groupIcon={pin?.groupIcon ?? 'cube-outline'}
+            onClose={() => setSelectedItemId(null)}
+            onEdit={() => setSelectedItemId(null)}
+          />
+        );
+      })()}
     </View>
   );
 }
@@ -217,18 +235,4 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent', borderRightColor: 'transparent',
     marginTop: -1,
   },
-  callout: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    minWidth: 140,
-    maxWidth: 220,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
-  },
-  calloutName: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 2 },
-  calloutLabel: { fontSize: 12, color: '#6B7280', lineHeight: 16 },
 });
