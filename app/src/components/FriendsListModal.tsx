@@ -16,9 +16,10 @@ interface Props {
   visible: boolean;
   userId: string;
   onClose: () => void;
+  onChanged?: () => void;
 }
 
-export function FriendsListModal({ visible, userId, onClose }: Props) {
+export function FriendsListModal({ visible, userId, onClose, onChanged }: Props) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ export function FriendsListModal({ visible, userId, onClose }: Props) {
       .delete()
       .or(`and(from_user_id.eq.${userId},to_user_id.eq.${friendId}),and(from_user_id.eq.${friendId},to_user_id.eq.${userId})`);
     setFriends((prev) => prev.filter((f) => f.id !== friendId));
+    onChanged?.();
   };
 
   return (

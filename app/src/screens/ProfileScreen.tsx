@@ -98,6 +98,7 @@ export function ProfileScreen() {
         visible={friendsModalVisible}
         userId={session?.user?.id ?? ''}
         onClose={() => setFriendsModalVisible(false)}
+        onChanged={fetchCounts}
       />
 
       {/* Sign out — pinned to bottom */}
