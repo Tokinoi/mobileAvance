@@ -10,7 +10,7 @@ import { ScreenShell } from '../components/templates/ScreenShell';
 import { IconBox } from '../components/atoms/IconBox';
 
 type UserProfileRouteProp = RouteProp<RootStackParamList, 'UserProfile'>;
-type FriendStatus = 'none' | 'pending' | 'friends';
+type FriendStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 interface Profile {
   id: string;
@@ -25,14 +25,15 @@ export function UserProfileScreen() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [friendStatus, setFriendStatus] = useState<FriendStatus>('none');
-  const [sendingRequest, setSendingRequest] = useState(false);
+  const [requestId, setRequestId] = useState<string | null>(null);
+  const [acting, setActing] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       Promise.all([
         supabase.from('profiles').select('id, pseudo').eq('id', userId).single(),
         supabase.from('groups').select('*').eq('user_id', userId).eq('is_public', true).is('parent_id', null).order('created_at', { ascending: false }),
-        supabase.from('friend_requests').select('status').or(`and(from_user_id.eq.${user!.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${user!.id})`).maybeSingle(),
+        supabase.from('friend_requests').select('id, status, from_user_id').or(`and(from_user_id.eq.${user!.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${user!.id})`).maybeSingle(),
       ]).then(([profileRes, groupsRes, friendRes]) => {
         if (profileRes.data) setProfile(profileRes.data);
         if (groupsRes.data) setGroups(groupsRes.data.map((g: any) => ({
@@ -42,19 +43,36 @@ export function UserProfileScreen() {
           isPublic: g.is_public ?? false,
         })));
         if (friendRes.data) {
-          setFriendStatus(friendRes.data.status === 'accepted' ? 'friends' : 'pending');
+          setRequestId(friendRes.data.id);
+          if (friendRes.data.status === 'accepted') {
+            setFriendStatus('friends');
+          } else if (friendRes.data.from_user_id === user!.id) {
+            setFriendStatus('pending_sent');
+          } else {
+            setFriendStatus('pending_received');
+          }
         }
         setLoading(false);
       });
     });
   }, [userId]);
 
-  const handleFriendRequest = async () => {
-    setSendingRequest(true);
+  const handleSendRequest = async () => {
+    setActing(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('friend_requests').insert({ from_user_id: user!.id, to_user_id: userId });
-    setFriendStatus('pending');
-    setSendingRequest(false);
+    const { data } = await supabase.from('friend_requests').insert({ from_user_id: user!.id, to_user_id: userId }).select('id').single();
+    if (data) setRequestId(data.id);
+    setFriendStatus('pending_sent');
+    setActing(false);
+  };
+
+  const handleRespond = async (accept: boolean) => {
+    if (!requestId) return;
+    setActing(true);
+    await supabase.from('friend_requests').update({ status: accept ? 'accepted' : 'declined' }).eq('id', requestId);
+    setFriendStatus(accept ? 'friends' : 'none');
+    if (!accept) setRequestId(null);
+    setActing(false);
   };
 
   if (loading) {
@@ -89,31 +107,33 @@ export function UserProfileScreen() {
             </View>
             <Text style={styles.pseudo}>{pseudo}</Text>
 
-            {friendStatus === 'friends' ? (
+            {acting ? (
+              <ActivityIndicator color="#4F46E5" style={{ marginTop: 8 }} />
+            ) : friendStatus === 'friends' ? (
               <View style={styles.friendsBadge}>
                 <Ionicons name="people" size={16} color="#16A34A" />
                 <Text style={styles.friendsBadgeText}>Friends</Text>
               </View>
+            ) : friendStatus === 'pending_received' ? (
+              <View style={styles.respondRow}>
+                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleRespond(true)}>
+                  <Ionicons name="checkmark" size={16} color="#fff" />
+                  <Text style={styles.acceptBtnText}>Accept</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.declineBtn} onPress={() => handleRespond(false)}>
+                  <Ionicons name="close" size={16} color="#EF4444" />
+                  <Text style={styles.declineBtnText}>Decline</Text>
+                </TouchableOpacity>
+              </View>
+            ) : friendStatus === 'pending_sent' ? (
+              <View style={styles.friendBtnPending}>
+                <Ionicons name="time-outline" size={16} color="#6B7280" />
+                <Text style={styles.friendBtnTextPending}>Request sent</Text>
+              </View>
             ) : (
-              <TouchableOpacity
-                style={[styles.friendBtn, friendStatus === 'pending' && styles.friendBtnPending]}
-                onPress={friendStatus === 'none' ? handleFriendRequest : undefined}
-                disabled={sendingRequest || friendStatus === 'pending'}
-              >
-                {sendingRequest ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={friendStatus === 'pending' ? 'time-outline' : 'person-add-outline'}
-                      size={16}
-                      color={friendStatus === 'pending' ? '#6B7280' : '#fff'}
-                    />
-                    <Text style={[styles.friendBtnText, friendStatus === 'pending' && styles.friendBtnTextPending]}>
-                      {friendStatus === 'pending' ? 'Request sent' : 'Ask for friend'}
-                    </Text>
-                  </>
-                )}
+              <TouchableOpacity style={styles.friendBtn} onPress={handleSendRequest}>
+                <Ionicons name="person-add-outline" size={16} color="#fff" />
+                <Text style={styles.friendBtnText}>Ask for friend</Text>
               </TouchableOpacity>
             )}
 
@@ -179,9 +199,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#4F46E5', borderRadius: 12,
     paddingHorizontal: 20, paddingVertical: 10, marginTop: 8,
   },
-  friendBtnPending: { backgroundColor: '#F3F4F6' },
+  friendBtnPending: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F3F4F6', borderRadius: 12,
+    paddingHorizontal: 20, paddingVertical: 10, marginTop: 8,
+  },
   friendBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
-  friendBtnTextPending: { color: '#6B7280' },
+  friendBtnTextPending: { fontSize: 14, fontWeight: '600', color: '#6B7280' },
+  respondRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  acceptBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#4F46E5', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10,
+  },
+  acceptBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
+  declineBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FEF2F2', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderWidth: 1, borderColor: '#FECACA',
+  },
+  declineBtnText: { fontSize: 14, fontWeight: '600', color: '#EF4444' },
   friendsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#F0FDF4', borderRadius: 12,

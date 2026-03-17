@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { FriendRequestsModal } from '../components/FriendRequestsModal';
+import { FriendsListModal } from '../components/FriendsListModal';
 
 export function ProfileScreen() {
   const { session, logout } = useAuth();
@@ -16,7 +17,8 @@ export function ProfileScreen() {
 
   const [friendsCount, setFriendsCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [requestsModalVisible, setRequestsModalVisible] = useState(false);
+  const [friendsModalVisible, setFriendsModalVisible] = useState(false);
 
   const fetchCounts = async () => {
     const userId = session?.user?.id;
@@ -60,16 +62,16 @@ export function ProfileScreen() {
         {/* Name + friends */}
         <View style={styles.userInfo}>
           <Text style={styles.name}>{pseudo}</Text>
-          <View style={styles.friendsRow}>
+          <TouchableOpacity style={styles.friendsRow} onPress={() => setFriendsModalVisible(true)}>
             <Ionicons name="people-outline" size={16} color="#6B7280" />
             <Text style={styles.friendsText}>
               <Text style={styles.friendsCount}>{friendsCount}</Text>{' friends'}
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
-        {/* Invitations */}
-        <TouchableOpacity style={styles.section} activeOpacity={0.7} onPress={() => setModalVisible(true)}>
+        {/* Friend requests */}
+        <TouchableOpacity style={styles.section} activeOpacity={0.7} onPress={() => setRequestsModalVisible(true)}>
           <View style={styles.sectionRow}>
             <Ionicons name="mail-outline" size={20} color="#4F46E5" />
             <Text style={styles.sectionTitle}>Friend requests</Text>
@@ -82,16 +84,21 @@ export function ProfileScreen() {
           </View>
         </TouchableOpacity>
 
-        <FriendRequestsModal
-          visible={modalVisible}
-          userId={session?.user?.id ?? ''}
-          onClose={() => setModalVisible(false)}
-          onChanged={fetchCounts}
-        />
-
-        {/* Spacer for footer */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <FriendRequestsModal
+        visible={requestsModalVisible}
+        userId={session?.user?.id ?? ''}
+        onClose={() => setRequestsModalVisible(false)}
+        onChanged={fetchCounts}
+      />
+
+      <FriendsListModal
+        visible={friendsModalVisible}
+        userId={session?.user?.id ?? ''}
+        onClose={() => setFriendsModalVisible(false)}
+      />
 
       {/* Sign out — pinned to bottom */}
       <SafeAreaView edges={['bottom']} style={styles.footer}>
