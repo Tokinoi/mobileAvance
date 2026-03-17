@@ -25,6 +25,7 @@ export function SubGroupCard({ group, onPress }: SubGroupCardProps) {
 
       <ShareToFriendsModal
         visible={shareVisible}
+        groupId={group.id}
         groupName={group.name}
         onClose={() => setShareVisible(false)}
       />

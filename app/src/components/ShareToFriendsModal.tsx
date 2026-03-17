@@ -14,11 +14,12 @@ interface Friend {
 
 interface Props {
   visible: boolean;
+  groupId: string;
   groupName: string;
   onClose: () => void;
 }
 
-export function ShareToFriendsModal({ visible, groupName, onClose }: Props) {
+export function ShareToFriendsModal({ visible, groupId, groupName, onClose }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
@@ -59,7 +60,16 @@ export function ShareToFriendsModal({ visible, groupName, onClose }: Props) {
 
   const handleShare = async () => {
     setSharing(true);
-    await new Promise((r) => setTimeout(r, 600)); // optimistic feedback delay
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const rows = [...selected].map((toId) => ({
+        group_id: groupId,
+        from_user_id: user.id,
+        to_user_id: toId,
+        status: 'pending',
+      }));
+      await supabase.from('group_invitations').insert(rows);
+    }
     setSharing(false);
     setDone(true);
     setTimeout(onClose, 900);
