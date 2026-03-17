@@ -1,7 +1,9 @@
-import { TouchableOpacity, View, Text, StyleSheet, Share } from 'react-native';
+import { useState } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconBox } from '../atoms/IconBox';
-import { Group } from '../types';
+import { Group } from '../../types';
+import { ShareToFriendsModal } from '../ShareToFriendsModal';
 
 interface GroupCardProps {
   group: Group;
@@ -9,26 +11,27 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onPress }: GroupCardProps) {
-  const handleShare = () => {
-    Share.share({
-      title: group.name,
-      message: group.description
-        ? `${group.name} — ${group.description}`
-        : group.name,
-    });
-  };
+  const [shareVisible, setShareVisible] = useState(false);
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
-      <IconBox icon={group.icon as any} color={group.color} size={24} boxSize={48} borderRadius={12} />
-      <View style={styles.body}>
-        <Text style={styles.name}>{group.name}</Text>
-        <Text style={styles.desc} numberOfLines={1}>{group.description}</Text>
-      </View>
-      <TouchableOpacity style={styles.actionBtn} onPress={handleShare} hitSlop={8}>
-        <Ionicons name="share-outline" size={18} color="#9CA3AF" />
+    <>
+      <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
+        <IconBox icon={group.icon as any} color={group.color} size={24} boxSize={48} borderRadius={12} />
+        <View style={styles.body}>
+          <Text style={styles.name}>{group.name}</Text>
+          <Text style={styles.desc} numberOfLines={1}>{group.description}</Text>
+        </View>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
+          <Ionicons name="share-outline" size={18} color="#9CA3AF" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
+
+      <ShareToFriendsModal
+        visible={shareVisible}
+        groupName={group.name}
+        onClose={() => setShareVisible(false)}
+      />
+    </>
   );
 }
 

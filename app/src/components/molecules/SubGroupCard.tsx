@@ -1,7 +1,9 @@
-import { TouchableOpacity, View, Text, StyleSheet, Share } from 'react-native';
+import { useState } from 'react';
+import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconBox } from '../atoms/IconBox';
-import { Group } from '../types';
+import { Group } from '../../types';
+import { ShareToFriendsModal } from '../ShareToFriendsModal';
 
 interface SubGroupCardProps {
   group: Group;
@@ -9,23 +11,24 @@ interface SubGroupCardProps {
 }
 
 export function SubGroupCard({ group, onPress }: SubGroupCardProps) {
-  const handleShare = () => {
-    Share.share({
-      title: group.name,
-      message: group.description
-        ? `${group.name} — ${group.description}`
-        : group.name,
-    });
-  };
+  const [shareVisible, setShareVisible] = useState(false);
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
-      <IconBox icon={group.icon as any} color={group.color} size={20} boxSize={36} borderRadius={10} />
-      <Text style={styles.name}>{group.name}</Text>
-      <TouchableOpacity style={styles.actionBtn} onPress={handleShare} hitSlop={8}>
-        <Ionicons name="share-outline" size={16} color="#9CA3AF" />
+    <>
+      <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
+        <IconBox icon={group.icon as any} color={group.color} size={20} boxSize={36} borderRadius={10} />
+        <Text style={styles.name}>{group.name}</Text>
+        <TouchableOpacity style={styles.actionBtn} onPress={() => setShareVisible(true)} hitSlop={8}>
+          <Ionicons name="share-outline" size={16} color="#9CA3AF" />
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
+
+      <ShareToFriendsModal
+        visible={shareVisible}
+        groupName={group.name}
+        onClose={() => setShareVisible(false)}
+      />
+    </>
   );
 }
 
