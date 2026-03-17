@@ -118,8 +118,13 @@ export function MapScreen() {
           <Marker
             key={pin.id}
             coordinate={{ latitude: pin.latitude, longitude: pin.longitude }}
-            pinColor={pin.groupColor}
           >
+            <View style={styles.pinContainer}>
+              <View style={[styles.pinCircle, { backgroundColor: pin.groupColor }]}>
+                <View style={styles.pinInner} />
+              </View>
+              <View style={[styles.pinTip, { borderTopColor: pin.groupColor }]} />
+            </View>
             <Callout tooltip>
               <View style={styles.callout}>
                 <Text style={styles.calloutName}>{pin.name}</Text>
@@ -198,6 +203,20 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   bannerText: { color: '#DC2626', fontSize: 13, textAlign: 'center' },
+  pinContainer: { alignItems: 'center' },
+  pinCircle: {
+    width: 32, height: 32, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }, elevation: 4,
+  },
+  pinInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.7)' },
+  pinTip: {
+    width: 0, height: 0,
+    borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent',
+    marginTop: -1,
+  },
   callout: {
     backgroundColor: '#fff',
     borderRadius: 10,
