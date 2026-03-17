@@ -21,6 +21,7 @@ export function ItemCard({ item, groupColor, groupIcon, visibleFields, onPress }
             {visibleFields.map((f) => {
               const val = item.data[f.id];
               if (val === undefined || val === null || val === '') return null;
+              if (f.type === 'image') return null;
               const display =
                 f.type === 'location' && typeof val === 'object'
                   ? (val.label ?? `${val.latitude?.toFixed(4)}, ${val.longitude?.toFixed(4)}`)

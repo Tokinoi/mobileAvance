@@ -1,5 +1,5 @@
 import {
-  Modal, View, Text, ScrollView, StyleSheet, SafeAreaView,
+  Modal, View, Text, ScrollView, StyleSheet, SafeAreaView, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Item, TemplateField } from '../types';
@@ -57,6 +57,9 @@ function renderValue(field: TemplateField, val: any) {
         );
       }
       return <Text style={styles.value}>{String(val)}</Text>;
+
+    case 'image':
+      return <Image source={{ uri: val }} style={styles.image} resizeMode="cover" />;
 
     default:
       return <Text style={styles.value}>{String(val)}</Text>;
@@ -141,4 +144,5 @@ const styles = StyleSheet.create({
   badgeTextOff: { color: '#9CA3AF' },
   locationRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   locationText: { flex: 1, fontSize: 15, color: '#111827', fontWeight: '500', lineHeight: 20 },
+  image: { width: '100%', height: 200, borderRadius: 10 },
 });
