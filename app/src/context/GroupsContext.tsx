@@ -27,9 +27,10 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
 
   const fetchGroups = async () => {
     setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
     const [groupsRes, itemsRes] = await Promise.all([
-      supabase.from('groups').select('*').order('created_at', { ascending: false }),
-      supabase.from('items').select('*').order('created_at', { ascending: false }),
+      supabase.from('groups').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
+      supabase.from('items').select('*').eq('user_id', user!.id).order('created_at', { ascending: false }),
     ]);
 
     if (!groupsRes.error && groupsRes.data) {
