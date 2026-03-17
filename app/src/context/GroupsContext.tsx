@@ -42,6 +42,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
         itemCount: g.item_count,
         parentId: g.parent_id ?? undefined,
         template: g.template ?? undefined,
+        isPublic: g.is_public ?? false,
       })));
     }
 
@@ -97,6 +98,7 @@ export function GroupsProvider({ children }: { children: ReactNode }) {
       description: data.description,
       icon: data.icon,
       color: data.color,
+      is_public: data.isPublic,
     }).eq('id', id);
     if (error) return error.message;
     await fetchGroups();

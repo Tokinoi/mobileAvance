@@ -26,4 +26,5 @@ export interface Group {
   itemCount: number;
   parentId?: string;
   template?: TemplateField[];
+  isPublic?: boolean;
 }

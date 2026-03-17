@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Modal, View, Text, TextInput, TouchableOpacity,
+  Modal, View, Text, TextInput, TouchableOpacity, Switch,
   ScrollView, StyleSheet, SafeAreaView, Alert, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,7 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
     ICON_OPTIONS.find((i) => i.icon === group.icon) ?? ICON_OPTIONS[0]
   );
   const [selectedColor, setSelectedColor] = useState(group.color);
+  const [isPublic, setIsPublic] = useState(group.isPublic ?? false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
       setDescription(group.description);
       setSelectedIcon(ICON_OPTIONS.find((i) => i.icon === group.icon) ?? ICON_OPTIONS[0]);
       setSelectedColor(group.color);
+      setIsPublic(group.isPublic ?? false);
       setError(null);
     }
   }, [visible, group]);
@@ -51,6 +53,7 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
       description: description.trim(),
       icon: selectedIcon.icon,
       color: selectedColor,
+      isPublic,
     });
     setSaving(false);
     if (err) { setError(err); return; }
@@ -159,6 +162,32 @@ export function GroupSettingsModal({ visible, group, onClose, onDeleted }: Props
             </View>
           </View>
 
+          {/* Visibility */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Visibility</Text>
+            <View style={styles.visibilityRow}>
+              <View style={styles.visibilityInfo}>
+                <Ionicons
+                  name={isPublic ? 'eye-outline' : 'eye-off-outline'}
+                  size={20}
+                  color={isPublic ? '#4F46E5' : '#9CA3AF'}
+                />
+                <View>
+                  <Text style={styles.visibilityLabel}>{isPublic ? 'Public' : 'Private'}</Text>
+                  <Text style={styles.visibilityDesc}>
+                    {isPublic ? 'Visible to everyone' : 'Only visible to you'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={isPublic}
+                onValueChange={setIsPublic}
+                trackColor={{ false: '#E5E7EB', true: '#A5B4FC' }}
+                thumbColor={isPublic ? '#4F46E5' : '#fff'}
+              />
+            </View>
+          </View>
+
           {/* Delete */}
           <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={deleting}>
             {deleting
@@ -202,6 +231,14 @@ const styles = StyleSheet.create({
   iconCell: { borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#E5E7EB' },
   iconCellSelected: { borderColor: '#4F46E5', backgroundColor: '#EEF2FF' },
   colorCell: { borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  visibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  visibilityInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  visibilityLabel: { fontSize: 15, fontWeight: '600', color: '#111827' },
+  visibilityDesc: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#FEF2F2', borderRadius: 12, paddingVertical: 14, borderWidth: 1, borderColor: '#FECACA' },
   deleteBtnText: { color: '#EF4444', fontSize: 15, fontWeight: '600' },
 });

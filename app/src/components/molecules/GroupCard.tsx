@@ -1,4 +1,4 @@
-import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, View, Text, StyleSheet, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconBox } from '../atoms/IconBox';
 import { Group } from '../types';
@@ -9,6 +9,15 @@ interface GroupCardProps {
 }
 
 export function GroupCard({ group, onPress }: GroupCardProps) {
+  const handleShare = () => {
+    Share.share({
+      title: group.name,
+      message: group.description
+        ? `${group.name} — ${group.description}`
+        : group.name,
+    });
+  };
+
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.8} onPress={onPress}>
       <IconBox icon={group.icon as any} color={group.color} size={24} boxSize={48} borderRadius={12} />
@@ -16,7 +25,9 @@ export function GroupCard({ group, onPress }: GroupCardProps) {
         <Text style={styles.name}>{group.name}</Text>
         <Text style={styles.desc} numberOfLines={1}>{group.description}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+      <TouchableOpacity style={styles.actionBtn} onPress={handleShare} hitSlop={8}>
+        <Ionicons name="share-outline" size={18} color="#9CA3AF" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
@@ -40,4 +51,10 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   name: { fontSize: 15, fontWeight: '600', color: '#111827' },
   desc: { fontSize: 13, color: '#6B7280', marginTop: 2 },
+  actionBtn: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
