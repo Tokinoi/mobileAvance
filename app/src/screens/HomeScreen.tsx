@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, TextInput, FlatList, ScrollView, TouchableOpacity,
   StyleSheet, useWindowDimensions, SafeAreaView, ActivityIndicator,
@@ -10,14 +10,28 @@ import { Group } from '../types';
 const COLUMNS = 2;
 const GAP = 12;
 const H_PAD = 16;
+const DEBOUNCE_MS = 350;
 
-/* ── Types ── */
 interface UserResult {
   id: string;
   pseudo: string;
 }
 
-/* ── Gallery card (no-search default view) ── */
+function mapGroup(g: any): Group {
+  return {
+    id: g.id,
+    name: g.name,
+    description: g.description,
+    icon: g.icon,
+    color: g.color,
+    itemCount: g.item_count,
+    parentId: g.parent_id ?? undefined,
+    template: g.template ?? undefined,
+    isPublic: g.is_public ?? false,
+  };
+}
+
+/* ── Gallery card ── */
 function GalleryCard({ group }: { group: Group }) {
   const { width } = useWindowDimensions();
   const cardSize = (width - H_PAD * 2 - GAP) / COLUMNS;
@@ -37,7 +51,7 @@ function GalleryCard({ group }: { group: Group }) {
   );
 }
 
-/* ── Search result rows ── */
+/* ── Result rows ── */
 function GroupRow({ group }: { group: Group }) {
   return (
     <View style={styles.resultRow}>
@@ -77,8 +91,9 @@ export function HomeScreen() {
   const [searchGroups, setSearchGroups] = useState<Group[]>([]);
   const [searchUsers, setSearchUsers] = useState<UserResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fetch all public groups on mount
+  // Gallery: all root-level groups on mount
   useEffect(() => {
     supabase
       .from('groups')
@@ -86,63 +101,56 @@ export function HomeScreen() {
       .is('parent_id', null)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
-        if (data) {
-          setAllGroups(data.map((g) => ({
-            id: g.id,
-            name: g.name,
-            description: g.description,
-            icon: g.icon,
-            color: g.color,
-            itemCount: g.item_count,
-            parentId: g.parent_id ?? undefined,
-            template: g.template ?? undefined,
-          })));
-        }
+        setAllGroups((data ?? []).map(mapGroup));
         setLoadingGroups(false);
       });
   }, []);
 
-  // Search groups + users
-  const runSearch = useCallback(async (q: string) => {
-    if (!q.trim()) {
+  const runSearch = async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
       setSearchGroups([]);
       setSearchUsers([]);
+      setSearching(false);
       return;
     }
-    setSearching(true);
-    const [groupsRes, usersRes] = await Promise.all([
-      supabase
-        .from('groups')
-        .select('*')
-        .ilike('name', `%${q}%`)
-        .is('parent_id', null)
-        .limit(20),
-      supabase
-        .from('profiles')
-        .select('id, pseudo')
-        .ilike('pseudo', `%${q}%`)
-        .limit(10),
-    ]);
 
-    setSearchGroups(
-      (groupsRes.data ?? []).map((g) => ({
-        id: g.id,
-        name: g.name,
-        description: g.description,
-        icon: g.icon,
-        color: g.color,
-        itemCount: g.item_count,
-        parentId: g.parent_id ?? undefined,
-        template: g.template ?? undefined,
-      }))
-    );
-    setSearchUsers(usersRes.data ?? []);
+    setSearching(true);
+
+    // Search ALL groups (name OR description), no parent filter
+    const groupsPromise = supabase
+      .from('groups')
+      .select('*')
+      .or(`name.ilike.%${trimmed}%,description.ilike.%${trimmed}%`)
+      .order('name', { ascending: true })
+      .limit(30);
+
+    // Search users from profiles table
+    const usersPromise = supabase
+      .from('profiles')
+      .select('id, pseudo')
+      .ilike('pseudo', `%${trimmed}%`)
+      .limit(10);
+
+    const [groupsRes, usersRes] = await Promise.all([groupsPromise, usersPromise]);
+
+    setSearchGroups((groupsRes.data ?? []).map(mapGroup));
+    // profiles table may not exist — handle gracefully
+    setSearchUsers(usersRes.error ? [] : (usersRes.data ?? []));
     setSearching(false);
-  }, []);
+  };
 
   const handleQueryChange = (text: string) => {
     setQuery(text);
-    runSearch(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!text.trim()) {
+      setSearchGroups([]);
+      setSearchUsers([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounceRef.current = setTimeout(() => runSearch(text), DEBOUNCE_MS);
   };
 
   const isSearching = query.trim().length > 0;
@@ -165,6 +173,7 @@ export function HomeScreen() {
             placeholder="Search groups or users…"
             placeholderTextColor="#9CA3AF"
             returnKeyType="search"
+            autoCorrect={false}
           />
           {!!query && (
             <TouchableOpacity onPress={() => handleQueryChange('')}>
@@ -174,14 +183,13 @@ export function HomeScreen() {
         </View>
       </View>
 
-      {/* Search results */}
       {isSearching ? (
+        /* ── Search results ── */
         <ScrollView contentContainerStyle={styles.searchResults} showsVerticalScrollIndicator={false}>
           {searching ? (
             <ActivityIndicator color="#4F46E5" style={{ marginTop: 40 }} />
           ) : (
             <>
-              {/* Users section */}
               {searchUsers.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Users</Text>
@@ -189,7 +197,6 @@ export function HomeScreen() {
                 </View>
               )}
 
-              {/* Groups section */}
               {searchGroups.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Groups</Text>
@@ -197,7 +204,7 @@ export function HomeScreen() {
                 </View>
               )}
 
-              {searchUsers.length === 0 && searchGroups.length === 0 && (
+              {!searching && searchUsers.length === 0 && searchGroups.length === 0 && (
                 <View style={styles.empty}>
                   <Ionicons name="search-outline" size={40} color="#D1D5DB" />
                   <Text style={styles.emptyText}>No results for "{query}"</Text>
@@ -207,7 +214,7 @@ export function HomeScreen() {
           )}
         </ScrollView>
       ) : (
-        /* Default gallery */
+        /* ── Default gallery ── */
         <FlatList
           data={allGroups}
           keyExtractor={(g) => g.id}
@@ -223,7 +230,7 @@ export function HomeScreen() {
             !loadingGroups ? (
               <View style={styles.empty}>
                 <Ionicons name="globe-outline" size={40} color="#D1D5DB" />
-                <Text style={styles.emptyText}>No public groups yet</Text>
+                <Text style={styles.emptyText}>No groups yet</Text>
               </View>
             ) : null
           }
@@ -235,8 +242,6 @@ export function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F9FAFB' },
-
-  /* ── Header ── */
   header: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -245,8 +250,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   headerTitle: { fontSize: 22, fontWeight: '700', color: '#111827' },
-
-  /* ── Search ── */
   searchRow: {
     paddingHorizontal: H_PAD,
     paddingVertical: 12,
@@ -264,8 +267,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   searchInput: { flex: 1, fontSize: 15, color: '#111827', padding: 0 },
-
-  /* ── Search results ── */
   searchResults: { padding: H_PAD, paddingBottom: 40 },
   section: { marginBottom: 24 },
   sectionTitle: {
@@ -291,27 +292,15 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  resultIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  resultIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   resultBody: { flex: 1 },
   resultName: { fontSize: 15, fontWeight: '600', color: '#111827' },
   resultSub: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
   userAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#EEF2FF',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: '#EEF2FF', alignItems: 'center', justifyContent: 'center',
   },
   userAvatarInitial: { fontSize: 17, fontWeight: '700', color: '#4F46E5' },
-
-  /* ── Gallery ── */
   galleryList: { padding: H_PAD, paddingBottom: 40 },
   galleryRow: { gap: GAP, marginBottom: GAP },
   galleryCard: {
@@ -330,8 +319,6 @@ const styles = StyleSheet.create({
   galleryCardBottom: { padding: 10, gap: 2 },
   galleryCardName: { fontSize: 14, fontWeight: '600', color: '#111827' },
   galleryCardDesc: { fontSize: 12, color: '#9CA3AF' },
-
-  /* ── Empty ── */
   empty: { alignItems: 'center', marginTop: 60, gap: 12 },
   emptyText: { fontSize: 14, color: '#9CA3AF' },
 });
