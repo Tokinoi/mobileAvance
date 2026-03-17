@@ -114,28 +114,12 @@ export function HomeScreen() {
       setSearching(false);
       return;
     }
-
     setSearching(true);
-
-    // Search ALL groups (name OR description), no parent filter
-    const groupsPromise = supabase
-      .from('groups')
-      .select('*')
-      .or(`name.ilike.%${trimmed}%,description.ilike.%${trimmed}%`)
-      .order('name', { ascending: true })
-      .limit(30);
-
-    // Search users from profiles table
-    const usersPromise = supabase
-      .from('profiles')
-      .select('id, pseudo')
-      .ilike('pseudo', `%${trimmed}%`)
-      .limit(10);
-
-    const [groupsRes, usersRes] = await Promise.all([groupsPromise, usersPromise]);
-
+    const [groupsRes, usersRes] = await Promise.all([
+      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).order('name', { ascending: true }).limit(30),
+      supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).limit(10),
+    ]);
     setSearchGroups((groupsRes.data ?? []).map(mapGroup));
-    // profiles table may not exist — handle gracefully
     setSearchUsers(usersRes.error ? [] : (usersRes.data ?? []));
     setSearching(false);
   };
@@ -196,15 +180,13 @@ export function HomeScreen() {
                   {searchUsers.map((u) => <UserRow key={u.id} user={u} />)}
                 </View>
               )}
-
               {searchGroups.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Groups</Text>
                   {searchGroups.map((g) => <GroupRow key={g.id} group={g} />)}
                 </View>
               )}
-
-              {!searching && searchUsers.length === 0 && searchGroups.length === 0 && (
+              {searchUsers.length === 0 && searchGroups.length === 0 && (
                 <View style={styles.empty}>
                   <Ionicons name="search-outline" size={40} color="#D1D5DB" />
                   <Text style={styles.emptyText}>No results for "{query}"</Text>
