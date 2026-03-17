@@ -101,10 +101,7 @@ export function GroupDetailScreen() {
     <ScreenShell style={{ paddingTop: 16 }}>
       <GroupDetailHeader
         group={group}
-        onBack={() => group.parentId
-          ? navigation.navigate('GroupDetail', { groupId: group.parentId })
-          : navigation.goBack()
-        }
+        onBack={() => navigation.goBack()}
         onTemplatePress={isOwn ? () => setTemplateVisible(true) : undefined}
         onSettingsPress={isOwn ? () => setSettingsVisible(true) : undefined}
       />
