@@ -72,9 +72,9 @@ function GroupRow({ group, onPress }: { group: Group; onPress: () => void }) {
   );
 }
 
-function UserRow({ user }: { user: UserResult }) {
+function UserRow({ user, onPress }: { user: UserResult; onPress: () => void }) {
   return (
-    <View style={styles.resultRow}>
+    <TouchableOpacity style={styles.resultRow} activeOpacity={0.7} onPress={onPress}>
       <View style={styles.userAvatar}>
         <Text style={styles.userAvatarInitial}>{user.pseudo[0]?.toUpperCase()}</Text>
       </View>
@@ -82,7 +82,7 @@ function UserRow({ user }: { user: UserResult }) {
         <Text style={styles.resultName}>{user.pseudo}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color="#D1D5DB" />
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -125,7 +125,7 @@ export function HomeScreen() {
     setSearching(true);
     const { data: { user } } = await supabase.auth.getUser();
     const [groupsRes, usersRes] = await Promise.all([
-      supabase.from('groups').select('*').ilike('name', `%${trimmed}%`).neq('user_id', user!.id).order('name', { ascending: true }).limit(30),
+      supabase.from('groups').select('*').eq('is_public', true).ilike('name', `%${trimmed}%`).neq('user_id', user!.id).order('name', { ascending: true }).limit(30),
       supabase.from('profiles').select('id, pseudo').ilike('pseudo', `%${trimmed}%`).neq('id', user!.id).limit(10),
     ]);
     setSearchGroups((groupsRes.data ?? []).map(mapGroup));
@@ -186,7 +186,7 @@ export function HomeScreen() {
               {searchUsers.length > 0 && (
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>Users</Text>
-                  {searchUsers.map((u) => <UserRow key={u.id} user={u} />)}
+                  {searchUsers.map((u) => <UserRow key={u.id} user={u} onPress={() => navigation.navigate('UserProfile', { userId: u.id })} />)}
                 </View>
               )}
               {searchGroups.length > 0 && (
