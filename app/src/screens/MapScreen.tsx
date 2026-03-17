@@ -26,12 +26,30 @@ export function MapScreen() {
   const [permissionStatus, setPermissionStatus] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [showPopup, setShowPopup] = useState(false);
 
+  const centeredRef = useRef(false);
+
+  const centerOnUser = async () => {
+    try {
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      mapRef.current?.animateToRegion({
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      }, 800);
+    } catch {}
+  };
+
   // Re-check permission every time the screen is focused
   useFocusEffect(useCallback(() => {
     Location.getForegroundPermissionsAsync().then(({ status }) => {
       if (status === 'granted') {
         setPermissionStatus('granted');
         setShowPopup(false);
+        if (!centeredRef.current) {
+          centeredRef.current = true;
+          centerOnUser();
+        }
       } else {
         setPermissionStatus('idle');
         setShowPopup(true);
@@ -88,7 +106,13 @@ export function MapScreen() {
   const requestPermission = async () => {
     setShowPopup(false);
     const { status } = await Location.requestForegroundPermissionsAsync();
-    setPermissionStatus(status === 'granted' ? 'granted' : 'denied');
+    if (status === 'granted') {
+      setPermissionStatus('granted');
+      centeredRef.current = true;
+      centerOnUser();
+    } else {
+      setPermissionStatus('denied');
+    }
   };
 
   const declinePermission = () => {
