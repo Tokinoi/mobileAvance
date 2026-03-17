@@ -9,7 +9,7 @@ import { MapScreen } from '../screens/MapScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
 const TABS = [
-  { label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { label: 'Search', icon: 'search-outline', activeIcon: 'search' },
   { label: 'Groups', icon: 'folder-outline', activeIcon: 'folder' },
   { label: 'Map', icon: 'map-outline', activeIcon: 'map' },
   { label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
